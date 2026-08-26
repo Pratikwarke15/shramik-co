@@ -14,6 +14,7 @@ import { setupWebSocket } from "./lib/websocket";
 import { getRedis } from "./lib/redis";
 import routes from "./routes";
 import { errorHandler, AppError } from "./middleware/errorHandler";
+import { connectDatabase } from "./lib/prisma";
 
 const app = express();
 const server = http.createServer(app);
@@ -21,7 +22,12 @@ const server = http.createServer(app);
 app.use(helmet({
   contentSecurityPolicy: false,
 }));
-app.use(cors({ origin: env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN }));
+app.use(cors({
+  origin: env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+}));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(morgan("combined", {
@@ -71,11 +77,17 @@ if (redis) {
   });
 }
 
-server.listen(env.API_PORT, () => {
-  logger.info(`🚀 SIH26089 CoopGig API server running on port ${env.API_PORT}`);
-  logger.info(`📚 API docs available at http://localhost:${env.API_PORT}/api/docs`);
-  logger.info(`🔌 WebSocket available at ws://localhost:${env.API_PORT}/ws`);
-});
+async function startServer() {
+  await connectDatabase();
+
+  server.listen(env.API_PORT, () => {
+    logger.info(`🚀 SIH26089 CoopGig API server running on port ${env.API_PORT}`);
+    logger.info(`📚 API docs available at http://localhost:${env.API_PORT}/api/docs`);
+    logger.info(`🔌 WebSocket available at ws://localhost:${env.API_PORT}/ws`);
+  });
+}
+
+startServer();
 
 function gracefulShutdown(signal: string) {
   logger.info(`${signal} received. Starting graceful shutdown...`);

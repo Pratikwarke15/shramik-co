@@ -83,6 +83,15 @@ export function errorHandler(
     }
   }
 
+  if (err.name === "PrismaClientInitializationError" || err.name === "PrismaClientRustPanicError") {
+    logger.error("Prisma connection/initialization error:", err);
+    res.status(503).json({
+      success: false,
+      error: "Service temporarily unavailable. Please try again.",
+    });
+    return;
+  }
+
   logger.error("Unhandled error:", err);
 
   const message =
