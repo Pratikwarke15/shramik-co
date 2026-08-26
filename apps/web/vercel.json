@@ -1,0 +1,16 @@
+{
+  "buildCommand": "cd ../.. && npm install && cd apps/web && npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://coopgig-api.onrender.com/api/:path*"
+    },
+    {
+      "source": "/ws/:path*",
+      "destination": "https://coopgig-api.onrender.com/ws/:path*"
+    }
+  ]
+}
