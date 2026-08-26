@@ -14,7 +14,6 @@ import { setupWebSocket } from "./lib/websocket";
 import { getRedis } from "./lib/redis";
 import routes from "./routes";
 import { errorHandler, AppError } from "./middleware/errorHandler";
-import { connectDatabase } from "./lib/prisma";
 
 const app = express();
 const server = http.createServer(app);
@@ -77,17 +76,11 @@ if (redis) {
   });
 }
 
-async function startServer() {
-  await connectDatabase();
-
-  server.listen(env.API_PORT, () => {
-    logger.info(`🚀 SIH26089 CoopGig API server running on port ${env.API_PORT}`);
-    logger.info(`📚 API docs available at http://localhost:${env.API_PORT}/api/docs`);
-    logger.info(`🔌 WebSocket available at ws://localhost:${env.API_PORT}/ws`);
-  });
-}
-
-startServer();
+server.listen(env.API_PORT, () => {
+  logger.info(`🚀 SIH26089 CoopGig API server running on port ${env.API_PORT}`);
+  logger.info(`📚 API docs available at http://localhost:${env.API_PORT}/api/docs`);
+  logger.info(`🔌 WebSocket available at ws://localhost:${env.API_PORT}/ws`);
+});
 
 function gracefulShutdown(signal: string) {
   logger.info(`${signal} received. Starting graceful shutdown...`);
