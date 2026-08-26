@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Dividend, Prisma } from "@prisma/client";
 import prisma from "../lib/prisma";
 import { AppError } from "../middleware/errorHandler";
 import { logger } from "../lib/logger";
@@ -252,7 +252,7 @@ export async function calculateDividends(
 
   const poolAmount = Number(totalCoopRevenue._sum.commissionAmount || 0) * 0.3;
 
-  const dividends = [];
+  const dividends: Dividend[] = [];
 
   for (const worker of workers) {
     const workerBookings = await prisma.booking.findMany({
