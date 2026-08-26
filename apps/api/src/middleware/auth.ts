@@ -33,10 +33,14 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   const token = authHeader.split(" ")[1];
 
   try {
-    const blacklisted = await isTokenBlacklisted(token);
-    if (blacklisted) {
-      res.status(401).json({ success: false, error: "Token has been revoked" });
-      return;
+    try {
+      const blacklisted = await isTokenBlacklisted(token);
+      if (blacklisted) {
+        res.status(401).json({ success: false, error: "Token has been revoked" });
+        return;
+      }
+    } catch {
+      // Redis unavailable — allow token through
     }
 
     const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
