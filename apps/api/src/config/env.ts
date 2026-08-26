@@ -11,12 +11,23 @@ function requireEnv(name: string): string {
   return value;
 }
 
+function ensureSslMode(url: string): string {
+  if (url.includes("sslmode=")) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}sslmode=require`;
+}
+
 function optionalEnv(name: string, fallback: string): string {
   return process.env[name] || fallback;
 }
 
+const resolvedDatabaseUrl = ensureSslMode(requireEnv("DATABASE_URL"));
+if (process.env.DATABASE_URL !== resolvedDatabaseUrl) {
+  process.env.DATABASE_URL = resolvedDatabaseUrl;
+}
+
 export const env = {
-  DATABASE_URL: requireEnv("DATABASE_URL"),
+  DATABASE_URL: resolvedDatabaseUrl,
   JWT_SECRET: optionalEnv("JWT_SECRET", "sih26089-dev-secret-key-change-in-production"),
   JWT_EXPIRES_IN: optionalEnv("JWT_EXPIRES_IN", "7d"),
   API_PORT: parseInt(optionalEnv("API_PORT", "4000"), 10),
