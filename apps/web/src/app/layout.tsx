@@ -20,6 +20,7 @@ export const metadata: Metadata = {
     "Empowering local workers through cooperative gig services with fair commissions, social security, and transparent governance.",
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "CoopGig" },
+  other: { "mobile-web-app-capable": "yes" },
 };
 
 export const viewport: Viewport = {
