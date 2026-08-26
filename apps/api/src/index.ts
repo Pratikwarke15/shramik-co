@@ -46,11 +46,22 @@ app.get("/api/v1/health", (_req, res) => {
 });
 
 app.get("/api/v1/debug", async (_req, res) => {
+  const dns = await import("dns").then(m => m.promises);
   try {
+    const result = await dns.lookup("db.rzagxntjipxfinvlajos.supabase.co");
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ success: true, db: "connected", nodeEnv: env.NODE_ENV, databaseUrl: env.DATABASE_URL.substring(0, 40) + "..." });
+    res.json({ success: true, db: "connected", dns: result.address });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message, code: err.code, name: err.name });
+    let dnsResult: any = null;
+    try { dnsResult = await dns.lookup("db.rzagxntjipxfinvlajos.supabase.co"); } catch {}
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      code: err.code,
+      name: err.name,
+      dns: dnsResult?.address || "failed",
+      dbUrl: env.DATABASE_URL.replace(/:([^@]+)@/, ":***@"),
+    });
   }
 });
 
