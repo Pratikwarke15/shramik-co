@@ -4,7 +4,7 @@ import { Prisma, UserRole } from "@prisma/client";
 import prisma from "../lib/prisma";
 import { env } from "../config/env";
 import { AppError } from "../middleware/errorHandler";
-import { redis } from "../lib/redis";
+import { getRedis } from "../lib/redis";
 import { logger } from "../lib/logger";
 import { sendOTPSms } from "./sms.service";
 
@@ -247,12 +247,16 @@ export async function getProfile(userId: string): Promise<any> {
 }
 
 export async function blacklistToken(token: string, expiresIn: number): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
   const key = `blacklist:${token}`;
   await redis.set(key, "1", "EX", expiresIn);
   logger.info(`Token blacklisted with TTL ${expiresIn}s`);
 }
 
 export async function isTokenBlacklisted(token: string): Promise<boolean> {
+  const redis = getRedis();
+  if (!redis) return false;
   const key = `blacklist:${token}`;
   const result = await redis.get(key);
   return result === "1";

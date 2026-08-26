@@ -9,7 +9,7 @@ import swaggerUi from "swagger-ui-express";
 import { env } from "./config/env";
 import { logger } from "./lib/logger";
 import { setupWebSocket } from "./lib/websocket";
-import redis from "./lib/redis";
+import { getRedis } from "./lib/redis";
 import routes from "./routes";
 import { errorHandler, AppError } from "./middleware/errorHandler";
 
@@ -57,13 +57,15 @@ app.use(errorHandler);
 
 setupWebSocket(server);
 
-redis.on("connect", () => {
-  logger.info("Redis connected successfully");
-});
-
-redis.on("error", (err: Error) => {
-  logger.error("Redis connection error:", err.message);
-});
+const redis = getRedis();
+if (redis) {
+  redis.on("connect", () => {
+    logger.info("Redis connected successfully");
+  });
+  redis.on("error", (err: Error) => {
+    logger.error("Redis connection error:", err.message);
+  });
+}
 
 server.listen(env.API_PORT, () => {
   logger.info(`🚀 SIH26089 CoopGig API server running on port ${env.API_PORT}`);
