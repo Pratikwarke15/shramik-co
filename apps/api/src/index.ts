@@ -14,7 +14,6 @@ import { setupWebSocket } from "./lib/websocket";
 import { getRedis } from "./lib/redis";
 import routes from "./routes";
 import { errorHandler, AppError } from "./middleware/errorHandler";
-import prisma from "./lib/prisma";
 
 const app = express();
 const server = http.createServer(app);
@@ -45,26 +44,6 @@ app.get("/api/v1/health", (_req, res) => {
     version: "1.0.0",
     timestamp: new Date().toISOString(),
   });
-});
-
-app.get("/api/v1/debug", async (_req, res) => {
-  const dns = await import("dns").then(m => m.promises);
-  try {
-    const result = await dns.lookup("db.rzagxntjipxfinvlajos.supabase.co");
-    await prisma.$queryRaw`SELECT 1`;
-    res.json({ success: true, db: "connected", dns: result.address });
-  } catch (err: any) {
-    let dnsResult: any = null;
-    try { dnsResult = await dns.lookup("db.rzagxntjipxfinvlajos.supabase.co"); } catch {}
-    res.status(500).json({
-      success: false,
-      error: err.message,
-      code: err.code,
-      name: err.name,
-      dns: dnsResult?.address || "failed",
-      dbUrl: env.DATABASE_URL.replace(/:([^@]+)@/, ":***@"),
-    });
-  }
 });
 
 app.use("/api/v1", routes);
