@@ -100,9 +100,11 @@ export async function register(data: {
     throw new AppError("Phone number already registered", 409);
   }
 
-  if (data.email) {
+  const email = data.email && data.email.trim() ? data.email.trim() : undefined;
+
+  if (email) {
     const existingEmail = await prisma.user.findUnique({
-      where: { email: data.email },
+      where: { email },
     });
     if (existingEmail) {
       throw new AppError("Email already registered", 409);
@@ -115,7 +117,7 @@ export async function register(data: {
     data: {
       phone: data.phone,
       name: data.name,
-      email: data.email,
+      email: email,
       passwordHash,
       role: data.role as UserRole,
     },

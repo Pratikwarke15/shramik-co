@@ -27,10 +27,10 @@ export const registerSchema = z.object({
     .string()
     .min(2, "Name must be at least 2 characters")
     .max(100, "Name must be at most 100 characters"),
-  email: z.string().email("Invalid email address").optional(),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
   password: z
     .string()
-    .min(8, "Password must be at least 8 characters")
+    .min(6, "Password must be at least 6 characters")
     .max(128, "Password must be at most 128 characters"),
   role: z.enum(["CONSUMER", "WORKER"], {
     errorMap: () => ({ message: "Role must be CONSUMER or WORKER" }),
