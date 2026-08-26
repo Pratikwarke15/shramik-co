@@ -1,0 +1,100 @@
+import "./config/env";
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import http from "http";
+import { swaggerSpec } from "./config/swagger";
+import swaggerUi from "swagger-ui-express";
+import { env } from "./config/env";
+import { logger } from "./lib/logger";
+import { setupWebSocket } from "./lib/websocket";
+import redis from "./lib/redis";
+import routes from "./routes";
+import { errorHandler, AppError } from "./middleware/errorHandler";
+
+const app = express();
+const server = http.createServer(app);
+
+app.use(helmet());
+app.use(cors({ origin: env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+app.use(morgan("combined", {
+  stream: {
+    write: (message: string) => logger.info(message.trim()),
+  },
+}));
+
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: ".swagger-ui .topbar { display: none }",
+  customSiteTitle: "SIH26089 CoopGig API Docs",
+}));
+
+app.get("/api/docs.json", (_req, res) => {
+  res.json(swaggerSpec);
+});
+
+app.get("/api/v1/health", (_req, res) => {
+  res.json({
+    success: true,
+    message: "SIH26089 CoopGig API is running",
+    version: "1.0.0",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.use("/api/v1", routes);
+
+app.use((_req, res, _next) => {
+  res.status(404).json({
+    success: false,
+    error: "Endpoint not found",
+  });
+});
+
+app.use(errorHandler);
+
+setupWebSocket(server);
+
+redis.on("connect", () => {
+  logger.info("Redis connected successfully");
+});
+
+redis.on("error", (err: Error) => {
+  logger.error("Redis connection error:", err.message);
+});
+
+server.listen(env.API_PORT, () => {
+  logger.info(`🚀 SIH26089 CoopGig API server running on port ${env.API_PORT}`);
+  logger.info(`📚 API docs available at http://localhost:${env.API_PORT}/api/docs`);
+  logger.info(`🔌 WebSocket available at ws://localhost:${env.API_PORT}/ws`);
+});
+
+function gracefulShutdown(signal: string) {
+  logger.info(`${signal} received. Starting graceful shutdown...`);
+
+  server.close(() => {
+    logger.info("HTTP server closed");
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    logger.error("Forced shutdown after timeout");
+    process.exit(1);
+  }, 10000);
+}
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+process.on("unhandledRejection", (reason) => {
+  logger.error("Unhandled rejection:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught exception:", error);
+  gracefulShutdown("uncaughtException");
+});
+
+export default app;
