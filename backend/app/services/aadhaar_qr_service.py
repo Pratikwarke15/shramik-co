@@ -144,11 +144,8 @@ def decode_qr_from_image(image_bytes: bytes) -> list[str]:
 
     seen = set()
     codes = []
-    for _, frame in passes:
-        try:
-            results = _pyzbar.decode(frame)
-        except Exception:
-            continue
+
+    def _collect(results):
         for r in results:
             try:
                 val = r.data.decode("utf-8")
@@ -157,6 +154,62 @@ def decode_qr_from_image(image_bytes: bytes) -> list[str]:
             if val not in seen:
                 seen.add(val)
                 codes.append(val)
+
+    for _, frame in passes:
+        try:
+            _collect(_pyzbar.decode(frame))
+        except Exception:
+            continue
+
+    # If nothing found yet, the QR may be small within a large card photo.
+    # Use OpenCV's QRCodeDetector (finds QR regions) and a tiled/upscaled
+    # pyzbar scan to locate QR codes that full-frame decoding misses.
+    try:
+        import cv2
+        import numpy as np
+
+        nparr = np.frombuffer(raw, np.uint8)
+        bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if bgr is not None:
+            # 3. OpenCV QRCodeDetector — robust to small QRs in big frames.
+            if not codes:
+                try:
+                    qd = cv2.QRCodeDetector()
+                    ret, info, _pts, _ = qd.detectAndDecodeMulti(bgr)
+                    if ret and isinstance(info, (list, tuple)):
+                        for item in info:
+                            if item and str(item).strip() and str(item).strip() not in seen:
+                                seen.add(str(item).strip())
+                                codes.append(str(item).strip())
+                except Exception:
+                    pass
+
+            # 4. Tiled + upscaled pyzbar scan for small / low-res QRs.
+            if not codes:
+                gray2 = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+                hgt, wdt = gray2.shape
+                for tilesize in (250, 300, 400):
+                    step = max(80, tilesize // 2)
+                    for top in range(0, max(1, hgt - tilesize + 1), step):
+                        for left in range(0, max(1, wdt - tilesize + 1), step):
+                            tile = gray2[top : top + tilesize, left : left + tilesize]
+                            for fac in (2, 3):
+                                t = cv2.resize(
+                                    tile, None, fx=fac, fy=fac, interpolation=cv2.INTER_CUBIC
+                                )
+                                try:
+                                    _collect(_pyzbar.decode(t))
+                                except Exception:
+                                    continue
+                            if codes:
+                                break
+                        if codes:
+                            break
+                    if codes:
+                        break
+    except Exception:
+        pass
+
     return codes
 
 
