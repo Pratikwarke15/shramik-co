@@ -21,7 +21,7 @@ async def create(
     return {"success": True, "message": "Booking created", "data": booking}
 
 
-@router.get("/")
+@router.get("")
 async def list_bookings(user: dict = Depends(get_current_user)):
     bookings = await booking_service.get_user_bookings(user["id"], user["role"])
     return {"success": True, "data": bookings}
