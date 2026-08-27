@@ -6,6 +6,19 @@ demand forecasting, and transparent cooperative governance.
 
 ---
 
+## 🌐 Live Deployment
+
+| Service    | URL |
+|------------|-----|
+| Website    | https://shramik-co.vercel.app |
+| API        | https://coopgig.onrender.com |
+| API Docs   | https://coopgig.onrender.com/docs |
+
+Demo logins: workers/co-op admins/consumers use phone 98123xxxxx–9876543212 (password `password123`);
+Federation (ministry) super admin: phone `9999999999` / `admin123`. Repo: https://github.com/Pratikwarke15/shramik-co
+
+---
+
 ## 📐 System Architecture
 
 ```
