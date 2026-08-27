@@ -24,8 +24,12 @@ router.post("/verify-otp", validate(verifyOtpSchema), asyncHandler(async (req, r
 }));
 
 router.post("/register", validate(registerSchema), asyncHandler(async (req, res) => {
-  const result = await authService.register(req.body);
-  res.status(201).json({ success: true, message: "User registered successfully", data: result });
+  try {
+    const result = await authService.register(req.body);
+    res.status(201).json({ success: true, message: "User registered successfully", data: result });
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: "DEBUG: " + (e?.message || String(e)), stack: e?.stack });
+  }
 }));
 
 router.post("/login", validate(loginSchema), asyncHandler(async (req, res) => {
