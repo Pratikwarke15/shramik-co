@@ -63,7 +63,7 @@ export async function apiDelete<T>(url: string, config?: AxiosRequestConfig): Pr
 export async function apiUpload<T>(url: string, formData: FormData, config?: AxiosRequestConfig): Promise<T> {
   const res = await api.post<T>(url, formData, {
     ...config,
-    headers: { "Content-Type": "multipart/form-data", ...config?.headers },
+    headers: { "Content-Type": undefined, ...config?.headers },
   });
   return res.data;
 }
