@@ -5,11 +5,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://coopgig-api.onrender.com/api/:path*"
+      "destination": "https://coopgig.onrender.com/api/:path*"
     },
     {
       "source": "/ws/:path*",
-      "destination": "https://coopgig-api.onrender.com/ws/:path*"
+      "destination": "https://coopgig.onrender.com/ws/:path*"
     }
   ]
 }
