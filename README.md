@@ -1,141 +1,181 @@
-# SIH26089: Cooperative Gig Services Platform
+# CoopGig — Cooperative Gig Services Platform for Household & Community Services
 
-> **CoopGig** — A production-ready full-stack platform for Cooperative Gig Services, enabling fair, transparent, and community-driven household & community services.
+**SIH26089** — A production-ready full-stack platform that empowers local workers through
+cooperative gig services with fair commissions (<5%), social security contributions, AI-driven
+demand forecasting, and transparent cooperative governance.
 
-## Tech Stack
+---
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 14 (App Router, TailwindCSS, TypeScript, PWA) |
-| Backend | Node.js + Express + TypeScript |
-| Database | PostgreSQL + PostGIS (geospatial) + Prisma ORM |
-| Real-time | WebSocket (ws) |
-| Auth | JWT with role-based access control |
-| Payments | UPI gateway stub |
-| Docs | Swagger/OpenAPI at `/api/docs` |
-
-## Architecture
+## 📐 System Architecture
 
 ```
-sih26089/
-├── apps/
-│   ├── web/          # Next.js 14 Consumer & Worker portals
-│   └── api/          # Express REST API + WebSocket server
-├── packages/
-│   └── db/           # Prisma schema, migrations & seed
-├── docker-compose.yml
-└── .env
+┌─────────────────────────────────────────────────────────────────┐
+│                         Frontend (Next.js 14)                      │
+│   PWA · App Router · TypeScript · TailwindCSS · i18n (en/hi/mr)    │
+│   Roles: Consumer · Worker · Co-op Admin · Federation Admin        │
+│   Deployed: Vercel                                                  │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │  HTTPS / JSON (CORS, JWT Bearer)
+┌───────────────────────────▼─────────────────────────────────────┐
+│                         API (Express + TypeScript)                 │
+│   Auth · Bookings · Workers · Co-ops · Payments · Disputes ·       │
+│   Social-Security · Upload · Analytics (AI Forecast) · WebSocket   │
+│   Deployed: Render (free tier)                                     │
+└───────────────────────────┬─────────────────────────────────────┘
+            ┌────────────────┼────────────────┐
+            ▼                ▼                ▼
+     ┌────────────┐   ┌──────────────┐   ┌──────────────┐
+     │  Supabase   │   │   Razorpay   │   │  2Factor /   │
+     │ PostgreSQL  │   │  (Test Mode) │   │  Console OTP │
+     │ (Pooler)    │   │  Payments    │   │  SMS         │
+     └────────────┘   └──────────────┘   └──────────────┘
 ```
 
-## Quick Start
+### Tech Stack
+
+| Layer        | Technology |
+|--------------|-----------|
+| Frontend     | Next.js 14 (App Router), TypeScript, TailwindCSS, TanStack Query, React Hook Form, Zod, `next-pwa` |
+| Backend      | Express 5, TypeScript, Zod validation, Winston logging, Helmet, CORS, Socket.IO |
+| Database     | Supabase PostgreSQL (connection pooler / PgBouncer) + Prisma ORM |
+| Auth         | JWT (access token) + phone/OTP verification (2Factor SMS with dev console fallback) |
+| Payments     | Razorpay Test Mode (UPI / card mock, escrow-held commission model) |
+| File Storage | Supabase Storage |
+| Geospatial   | Application-level Haversine radius matching (PostGIS-compatible schema fields) |
+| AI/ML        | Statistical demand-forecasting engine (seasonal-weighted history + linear-trend regression) |
+| i18n         | Custom lightweight provider with English, Hindi, Marathi catalogs |
+| Infra        | Vercel (web) + Render (API), GitHub monorepo |
+
+---
+
+## 🚀 Local Setup
 
 ### Prerequisites
-- Node.js >= 18
-- Docker & Docker Compose
-- PostgreSQL (or use Docker)
+- Node.js ≥ 18, npm ≥ 9
+- A Supabase project (PostgreSQL + Storage bucket)
+- Razorpay test keys (free)
+- 2Factor SMS API key (free) — optional; dev console fallback works without it
 
-### 1. Start Database
+### 1. Clone & install
 ```bash
-docker compose up -d postgres redis
-```
-
-### 2. Install Dependencies
-```bash
+git clone https://github.com/coopgig/coopgig.git
+cd coopgig
 npm install
 ```
 
-### 3. Setup Database
+### 2. Environment variables
+Copy the template and fill values (see `.env` and `apps/web/.env.local`):
+
 ```bash
-npm run db:generate
-npm run db:push
-npm run db:seed
+# apps/api — root .env (or set in Render)
+DATABASE_URL="postgresql://USER:PASS@aws-0-<region>.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1"
+JWT_SECRET="<strong-random-secret>"
+CORS_ORIGIN="http://localhost:3000"
+NEXT_PUBLIC_API_URL="http://localhost:4000"
+RAZORPAY_KEY_ID="rzp_test_xxxxx"
+RAZORPAY_KEY_SECRET="xxxxxxxx"
+SMS_API_KEY="<2factor-key>"          # optional
+SUPABASE_URL="https://xxxx.supabase.co"
+SUPABASE_ANON_KEY="xxxx"
+SUPABASE_SERVICE_KEY="xxxx"
 ```
 
-### 4. Start Development
+> **Important (Supabase pooler):** always append `&pgbouncer=true&connection_limit=1` to
+> `DATABASE_URL`. Prisma uses prepared statements that conflict with PgBouncer's transaction
+> pooling; this flag disables them. Without it every write query fails with
+> `42P05 prepared statement "s0" already exists`.
+
+### 3. Database & seed
 ```bash
-npm run dev
+npx prisma generate --schema=packages/db/prisma/schema.prisma
+npx prisma migrate deploy --schema=packages/db/prisma/schema.prisma
+# or for a fresh DB:
+npx prisma db push --schema=packages/db/prisma/schema.prisma
+npm --workspace apps/api run seed
 ```
 
-This starts:
-- **API**: http://localhost:4000
-- **API Docs**: http://localhost:4000/api/docs
-- **Web**: http://localhost:3000
-
-### Docker (Full Stack)
+### 4. Run locally
 ```bash
-docker compose up -d
+# Terminal 1 — API
+cd apps/api && npm run dev          # http://localhost:4000  (docs: /api/docs)
+
+# Terminal 2 — Web
+cd apps/web && npm run dev          # http://localhost:3000
 ```
 
-## Demo Accounts
+---
 
-| Role | Phone | Password |
-|------|-------|----------|
-| Consumer | 9876543201 | password123 |
-| Worker | 9876543210 | password123 |
-| Coop Admin | 9876543220 | password123 |
-| Super Admin | 9999999999 | admin123 |
+## 🧪 Testing Guide
 
-## Features
+### Register / Login
+1. Open `http://localhost:3000/register`.
+2. Choose **Hire Workers** (Consumer) or **Work & Earn** (Worker), enter name + 10-digit phone + password (min 6).
+3. Email is optional. OTP step uses the dev console fallback (see below).
+4. Seed accounts (password `password123`):
+   - Consumer: `9812345601`–`9812345604`
+   - Worker: `9876543201`–`9876543212`
+   - Co-op Admin: `9890000001`–`9890000004`
+   - Federation Admin: `9999999999` / `admin123`
 
-### Consumer Portal
-- Multi-step service booking with geospatial worker matching
-- Real-time booking tracker
-- Wallet & transaction history
-- Rating & review system
+### Retrieve Dev OTP
+- **2Factor (production):** real SMS is sent; OTP appears in the 2Factor dashboard.
+- **Dev / console fallback:** when `SMS_API_KEY` is unset or SMS fails, the OTP is logged to the
+  API server console (`OTP for <phone>: 123456`) and can be returned via the
+  `POST /api/v1/auth/send-otp` response in non-production. Use the same OTP in
+  `POST /api/v1/auth/verify-otp`.
 
-### Worker Portal
-- On-duty/off-duty toggle
-- Job acceptance & management
-- Earnings dashboard with dividend tracking
-- Social security fund management
-- KYC verification (DigiLocker mock)
+### Test Payments (Razorpay Test Mode)
+1. Create a booking as a Consumer → `POST /api/v1/payments/initiate`.
+2. Response returns `mockVpa` (e.g. `coopgig-xxxx@upi`) and `paymentRef`.
+3. In test mode no real charge occurs; confirm with `POST /api/v1/payments/confirm` using the
+   `razorpay_order_id`/`razorpay_payment_id` returned by `POST /api/v1/payments/create-order`
+   (use Razorpay test card `4111 1111 1111 1111`, any future expiry, any CVV).
+4. Commission (≤5%) is held in escrow; the remainder is routed to the worker wallet.
 
-### Co-op Admin Portal
-- Worker management & verification
-- Service configuration & pricing
-- Dispute resolution
-- Dividend calculation & distribution
-- Revenue analytics
+### AI Demand Forecasting
+```bash
+curl -H "Authorization: Bearer <COOP_ADMIN_TOKEN>" \
+  "https://<api>/api/v1/analytics/demand-forecast?days=7&condition=HEAVY_RAIN&temperatureC=30"
+```
+Returns a 7-day forecast per service category, demand hotspots per co-op, and workforce
+allocation recommendations. Weather multipliers (rain/heatwave) raise predicted demand.
 
-### Platform Features
-- PostGIS `ST_DWithin` for location-based worker discovery
-- Commission engine capped at <5%
-- Auto patronage dividend calculation
-- WebSocket real-time updates
-- Multi-role JWT authentication
-- Zod input validation on all endpoints
-- Swagger API documentation
+### Automated endpoint checks
+```bash
+# from repo root, after starting the API
+bash scripts/smoke-test.sh     # optional helper (create if needed)
+```
 
-## API Endpoints
+---
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/auth/send-otp` | Send OTP to phone |
-| POST | `/api/v1/auth/verify-otp` | Verify OTP |
-| POST | `/api/v1/auth/register` | Register user |
-| POST | `/api/v1/auth/login` | Login |
-| POST | `/api/v1/bookings` | Create booking |
-| GET | `/api/v1/bookings` | List bookings |
-| GET | `/api/v1/bookings/nearby-workers` | Find nearby workers |
-| PATCH | `/api/v1/bookings/:id/status` | Update booking status |
-| POST | `/api/v1/bookings/:id/rate` | Rate completed booking |
-| POST | `/api/v1/payments/initiate` | Initiate UPI payment |
-| POST | `/api/v1/payments/confirm` | Confirm payment |
-| GET | `/api/v1/workers/search` | Search workers by location |
-| POST | `/api/v1/disputes` | Create dispute |
-| GET | `/api/v1/coops/:id/dashboard` | Coop dashboard stats |
-| POST | `/api/v1/coops/:id/dividends` | Calculate dividends |
+## 🌐 Multilingual Support (i18n)
+Languages: **English (en)**, **Hindi (हिन्दी)**, **Marathi (मराठी)**.
+- Switch via the globe `LanguageSelector` (top-right of every page, including login/register).
+- Preference persisted in `localStorage` (`coopgig_lang`) and applied to `<html lang>`.
+- Catalogs live in `apps/web/src/i18n/messages/{en,hi,mr}.json`.
+- Use `const { t } = useI18n()` and `t("auth.welcomeBack")` in any client component.
+- To add a language: add a JSON catalog + an entry in `LOCALES` (`I18nProvider.tsx`).
 
-Full API documentation: http://localhost:4000/api/docs
+---
 
-## Environment Variables
+## 📦 Project Structure
+```
+packages/db/prisma/      Prisma schema + seed
+apps/api/                Express API (routes, services, middleware, lib)
+apps/web/                Next.js frontend (app, components, i18n, store)
+```
 
-Copy `.env.example` to `.env` and configure:
-- `DATABASE_URL` — PostgreSQL connection string
-- `JWT_SECRET` — JWT signing secret
-- `API_PORT` — Backend port (default: 4000)
-- `CORS_ORIGIN` — Frontend URL
+---
 
-## License
+## 🔐 Security & Compliance Notes
+- JWT secrets via env; tokens are `Bearer` in `Authorization`.
+- CORS restricted to `CORS_ORIGIN` (Vercel URL in prod) with credentials.
+- Commission cap enforced server-side (`MAX_COMMISSION_RATE`, default 5%).
+- File uploads scoped to authenticated users; stored in Supabase Storage.
+- All inputs validated with Zod schemas; unknown fields stripped.
 
-Built for Smart India Hackathon 2026.
+## 📄 API Documentation
+Interactive Swagger UI: `https://<api>/api/docs`
+
+## 🤝 Contributing
+Monorepo uses npm workspaces. Run `npm install` at root. Lint/typecheck before PRs.
