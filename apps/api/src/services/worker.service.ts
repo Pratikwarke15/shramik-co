@@ -33,9 +33,21 @@ export async function registerWorker(
 ): Promise<any> {
   const existing = await prisma.workerProfile.findUnique({ where: { userId } });
   if (existing) throw new AppError("Worker profile already exists", 409);
+  let coopId = data.coopId;
   if (data.coopId) {
     const coop = await prisma.coOp.findUnique({ where: { id: data.coopId } });
     if (!coop) throw new AppError("Co-op not found", 404);
+  } else if (data.latitude !== undefined && data.longitude !== undefined) {
+    // Auto-assign to the nearest active co-op based on the worker's work location.
+    const coops = await prisma.coOp.findMany({ where: { isActive: true } });
+    let best: { id: string; d: number } | null = null;
+    for (const c of coops) {
+      const d = haversineDistance(data.latitude, data.longitude, Number(c.latitude), Number(c.longitude));
+      if (d <= (c.radiusKm || 10) && (!best || d < best.d)) {
+        best = { id: c.id, d };
+      }
+    }
+    coopId = best?.id;
   }
   // DigiLocker verification (dummy — returns verified for any 12-digit Aadhaar)
   const digilockerResult = await verifyAadhaar(data.aadhaarNumber);
@@ -45,7 +57,7 @@ export async function registerWorker(
       skillTags: data.skillTags,
       bio: data.bio,
       experienceYears: data.experienceYears || 0,
-      coopId: data.coopId,
+      coopId,
       latitude: data.latitude,
       longitude: data.longitude,
       workAddress: data.workAddress,
