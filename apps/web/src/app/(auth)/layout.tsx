@@ -1,8 +1,31 @@
+"use client";
+
 import { Handshake } from "lucide-react";
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { LanguageSelector } from "@/components/i18n/LanguageSelector";
+import { useAuthStore } from "@/store/authStore";
+import { getRoleDashboardPath } from "@/lib/utils";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const { isAuthenticated, sessionValidated, user } = useAuthStore();
+
+  useEffect(() => {
+    if (sessionValidated && isAuthenticated && user) {
+      router.replace(getRoleDashboardPath(user.role));
+    }
+  }, [isAuthenticated, router, sessionValidated, user]);
+
+  if (sessionValidated && isAuthenticated && user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen">
       <div className="hidden w-1/2 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 lg:flex lg:flex-col lg:items-center lg:justify-center lg:p-12">

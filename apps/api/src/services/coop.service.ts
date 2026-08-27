@@ -92,6 +92,70 @@ export async function getCoopByAdmin(userId: string): Promise<any> {
   });
 }
 
+export async function assertCoopAccess(
+  userId: string,
+  role: string,
+  coopId: string
+): Promise<void> {
+  if (role === "MINISTRY_SUPER_ADMIN") return;
+  if (role !== "COOP_ADMIN") {
+    throw new AppError("Insufficient permissions", 403);
+  }
+  const admin = await prisma.coopAdminProfile.findUnique({
+    where: { userId },
+    select: { coopId: true },
+  });
+  if (!admin || admin.coopId !== coopId) {
+    throw new AppError("You can only manage your assigned co-op", 403);
+  }
+}
+
+export async function listServices(filters?: {
+  coopId?: string;
+  category?: string;
+  activeOnly?: boolean;
+}): Promise<any[]> {
+  const services = await prisma.service.findMany({
+    where: {
+      ...(filters?.coopId ? { coopId: filters.coopId } : {}),
+      ...(filters?.category ? { categorySlug: filters.category } : {}),
+      ...(filters?.activeOnly !== false ? { isActive: true, coop: { isActive: true } } : {}),
+    },
+    include: {
+      coop: {
+        select: {
+          id: true,
+          name: true,
+          city: true,
+          state: true,
+          latitude: true,
+          longitude: true,
+          radiusKm: true,
+          commissionRate: true,
+          maxCommissionRate: true,
+          isActive: true,
+        },
+      },
+    },
+    orderBy: [{ categoryName: "asc" }, { name: "asc" }],
+  });
+
+  return services.map((service) => ({
+    ...service,
+    basePrice: Number(service.basePrice),
+    pricePerUnit: service.pricePerUnit ? Number(service.pricePerUnit) : undefined,
+    minPrice: service.minPrice ? Number(service.minPrice) : undefined,
+    maxPrice: service.maxPrice ? Number(service.maxPrice) : undefined,
+    coop: service.coop
+      ? {
+          ...service.coop,
+          commissionRate: Number(service.coop.commissionRate),
+          maxCommissionRate: Number(service.coop.maxCommissionRate),
+        }
+      : null,
+  }));
+}
+
 export async function getCoopWorkers(coopId: string, status?: string): Promise<any[]> {
   const coop = await prisma.coOp.findUnique({ where: { id: coopId } });
   if (!coop) {
@@ -156,55 +220,45 @@ export async function getCoopDashboard(coopId: string): Promise<any> {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-  const [
-    totalWorkers,
-    activeWorkers,
-    totalBookings,
-    monthlyBookings,
-    completedBookings,
-    totalRevenue,
-    monthlyRevenue,
-    totalServices,
-  ] = await Promise.all([
-    prisma.workerProfile.count({ where: { coopId } }),
-    prisma.workerProfile.count({
-      where: { coopId, isAvailable: true, isOnDuty: true },
-    }),
-    prisma.booking.count({
-      where: { worker: { coopId } },
-    }),
-    prisma.booking.count({
-      where: {
-        worker: { coopId },
-        createdAt: { gte: startOfMonth },
-      },
-    }),
-    prisma.booking.findMany({
-      where: {
-        worker: { coopId },
-        status: "COMPLETED",
-      },
-      select: {
-        finalPrice: true,
-        commissionAmount: true,
-        workerPayout: true,
-        completedAt: true,
-      },
-    }),
-    prisma.booking.aggregate({
-      where: { worker: { coopId }, status: "COMPLETED" },
-      _sum: { finalPrice: true, commissionAmount: true },
-    }),
-    prisma.booking.aggregate({
-      where: {
-        worker: { coopId },
-        status: "COMPLETED",
-        completedAt: { gte: startOfMonth },
-      },
-      _sum: { finalPrice: true, commissionAmount: true },
-    }),
-    prisma.service.count({ where: { coopId, isActive: true } }),
-  ]);
+  // Sequential to avoid P2024 under Supabase's single-connection pooler.
+  const totalWorkers = await prisma.workerProfile.count({ where: { coopId } });
+  const activeWorkers = await prisma.workerProfile.count({
+    where: { coopId, isAvailable: true, isOnDuty: true },
+  });
+  const totalBookings = await prisma.booking.count({
+    where: { worker: { coopId } },
+  });
+  const monthlyBookings = await prisma.booking.count({
+    where: {
+      worker: { coopId },
+      createdAt: { gte: startOfMonth },
+    },
+  });
+  const completedBookings = await prisma.booking.findMany({
+    where: {
+      worker: { coopId },
+      status: "COMPLETED",
+    },
+    select: {
+      finalPrice: true,
+      commissionAmount: true,
+      workerPayout: true,
+      completedAt: true,
+    },
+  });
+  const totalRevenue = await prisma.booking.aggregate({
+    where: { worker: { coopId }, status: "COMPLETED" },
+    _sum: { finalPrice: true, commissionAmount: true },
+  });
+  const monthlyRevenue = await prisma.booking.aggregate({
+    where: {
+      worker: { coopId },
+      status: "COMPLETED",
+      completedAt: { gte: startOfMonth },
+    },
+    _sum: { finalPrice: true, commissionAmount: true },
+  });
+  const totalServices = await prisma.service.count({ where: { coopId, isActive: true } });
 
   const yearRevenue = completedBookings
     .filter((b) => b.completedAt && b.completedAt >= startOfYear)
@@ -361,6 +415,8 @@ export default {
   createCoop,
   getCoop,
   getCoopByAdmin,
+  assertCoopAccess,
+  listServices,
   getCoopWorkers,
   updateCoopSettings,
   getCoopDashboard,

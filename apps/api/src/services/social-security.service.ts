@@ -25,9 +25,11 @@ export async function getWorkerContributions(workerId: string): Promise<any[]> {
   });
 
   if (vaults.length === 0) {
-    vaults = await Promise.all(
-      FUND_TYPES.map((fundType) =>
-        prisma.socialSecurityVault.create({
+    // Sequential to avoid P2024 under Supabase's single-connection pooler.
+    const created: any[] = [];
+    for (const fundType of FUND_TYPES) {
+      created.push(
+        await prisma.socialSecurityVault.create({
           data: {
             workerId,
             fundType,
@@ -37,8 +39,9 @@ export async function getWorkerContributions(workerId: string): Promise<any[]> {
             isOptedIn: false,
           },
         })
-      )
-    );
+      );
+    }
+    vaults = created;
   }
 
   return vaults.map((v) => ({

@@ -2,17 +2,28 @@ import prisma from "../lib/prisma";
 import { AppError } from "../middleware/errorHandler";
 
 export async function getMinistryStats(): Promise<any> {
-  const [coopCount, workerCount, pendingWorkers, consumerCount, bookingCount, revenue] = await Promise.all([
-    prisma.coOp.count({}),
-    prisma.workerProfile.count({}),
-    prisma.workerProfile.count({ where: { status: "PENDING_ADMIN_APPROVAL" } }),
-    prisma.user.count({ where: { role: "CONSUMER" } }),
-    prisma.booking.count({}),
-    prisma.booking.aggregate({ _sum: { commissionAmount: true } }),
-  ]);
-
-  const verifiedWorkerCount = await prisma.workerProfile.count({ where: { status: "VERIFIED" } });
-  const suspendedWorkerCount = await prisma.workerProfile.count({ where: { status: "SUSPENDED" } });
+  // Supabase pooler exposes a single connection (connection_limit=1), so queries
+  // MUST run sequentially; parallel Promise.all calls contend for one connection
+  // and time out with Prisma P2024.
+  const run = async <T>(fn: () => Promise<T>): Promise<T> => fn();
+  const coopCount = await run(() => prisma.coOp.count({}));
+  const workerCount = await run(() => prisma.workerProfile.count({}));
+  const pendingWorkers = await run(() =>
+    prisma.workerProfile.count({ where: { status: "PENDING_ADMIN_APPROVAL" } })
+  );
+  const consumerCount = await run(() =>
+    prisma.user.count({ where: { role: "CONSUMER" } })
+  );
+  const bookingCount = await run(() => prisma.booking.count({}));
+  const revenue = await run(() =>
+    prisma.booking.aggregate({ _sum: { commissionAmount: true } })
+  );
+  const verifiedWorkerCount = await run(() =>
+    prisma.workerProfile.count({ where: { status: "VERIFIED" } })
+  );
+  const suspendedWorkerCount = await run(() =>
+    prisma.workerProfile.count({ where: { status: "SUSPENDED" } })
+  );
 
   return {
     totalCoops: coopCount,
@@ -35,13 +46,15 @@ export async function listCoops(): Promise<any[]> {
     orderBy: { createdAt: "asc" },
   });
 
-  return Promise.all(coops.map(async (c) => {
+  // Sequential to avoid P2024 under Supabase's single-connection pooler.
+  const result: any[] = [];
+  for (const c of coops) {
     const bookingStats = await prisma.booking.aggregate({
       where: { service: { coopId: c.id } },
       _count: true,
       _sum: { commissionAmount: true },
     });
-    return {
+    result.push({
       id: c.id, name: c.name, registrationNo: c.registrationNo, description: c.description,
       address: c.address, city: c.city, state: c.state, pincode: c.pincode,
       latitude: c.latitude, longitude: c.longitude, radiusKm: c.radiusKm,
@@ -50,8 +63,9 @@ export async function listCoops(): Promise<any[]> {
       workerCount: c._count.workers,
       serviceCount: c._count.services,
       revenue: Number(bookingStats._sum.commissionAmount || 0),
-    };
-  }));
+    });
+  }
+  return result;
 }
 
 export async function listAllWorkers(status?: string, q?: string): Promise<any[]> {

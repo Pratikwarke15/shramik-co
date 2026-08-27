@@ -1,0 +1,7 @@
+.venv
+__pycache__
+*.pyc
+public/uploads/*
+**/.pytest_cache
+Dockerfile
+.dockerignore

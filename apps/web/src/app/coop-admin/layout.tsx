@@ -16,7 +16,7 @@ const sidebarLinks: SidebarLink[] = [
 
 export default function CoopAdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AuthGuard allowedRoles={["COOP_ADMIN", "MINISTRY_SUPER_ADMIN"]}>
+    <AuthGuard allowedRoles={["COOP_ADMIN"]}>
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="flex">

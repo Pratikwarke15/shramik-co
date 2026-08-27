@@ -4,13 +4,21 @@ import { validate } from "../middleware/validate";
 import { asyncHandler } from "../middleware/asyncHandler";
 import { sendOtpSchema, verifyOtpSchema, registerSchema, loginSchema } from "../schemas/auth.schemas";
 import * as authService from "../services/auth.service";
+import { env } from "../config/env";
 
 const router = Router();
 
 router.post("/send-otp", validate(sendOtpSchema), asyncHandler(async (req, res) => {
   const { phone } = req.body;
   const result = await authService.generateOTP(phone);
-  res.json({ success: true, message: "OTP sent successfully", data: { expiresAt: result.expiresAt } });
+  res.json({
+    success: true,
+    message: "OTP sent successfully",
+    data: {
+      expiresAt: result.expiresAt,
+      ...(env.NODE_ENV !== "production" ? { otp: result.otp } : {}),
+    },
+  });
 }));
 
 router.post("/verify-otp", validate(verifyOtpSchema), asyncHandler(async (req, res) => {

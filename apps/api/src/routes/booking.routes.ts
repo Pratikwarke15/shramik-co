@@ -4,6 +4,7 @@ import { validate } from "../middleware/validate";
 import { asyncHandler } from "../middleware/asyncHandler";
 import { createBookingSchema, updateBookingStatusSchema, rateBookingSchema } from "../schemas/booking.schemas";
 import * as bookingService from "../services/booking.service";
+import * as coopService from "../services/coop.service";
 import prisma from "../lib/prisma";
 
 const router = Router();
@@ -34,6 +35,17 @@ router.get("/nearby-workers", asyncHandler(async (req, res) => {
 
 router.get("/:id", authenticate, asyncHandler(async (req, res) => {
   const booking = await bookingService.getBooking(req.params.id);
+  if (req.user!.role === "CONSUMER" && booking.consumerId !== req.user!.id) {
+    res.status(403).json({ success: false, error: "You can only view your own bookings" });
+    return;
+  }
+  if (req.user!.role === "WORKER" && booking.worker?.userId !== req.user!.id) {
+    res.status(403).json({ success: false, error: "You can only view assigned bookings" });
+    return;
+  }
+  if (req.user!.role === "COOP_ADMIN") {
+    await coopService.assertCoopAccess(req.user!.id, req.user!.role, booking.service.coopId);
+  }
   res.json({ success: true, data: booking });
 }));
 

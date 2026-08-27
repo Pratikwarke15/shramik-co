@@ -15,11 +15,7 @@ export default function WorkerOnboardingPage() {
     apiGet<any>("/workers/profile")
       .then((res) => {
         if (res.success && res.data) {
-          if (res.data.status === "VERIFIED") {
-            router.push("/worker/dashboard");
-          } else {
-            router.push("/worker/pending-approval");
-          }
+          router.push("/worker/dashboard");
         }
       })
       .catch(() => {});
@@ -33,8 +29,8 @@ export default function WorkerOnboardingPage() {
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-gray-900">Complete Your Worker Profile</h1>
           <p className="mt-2 text-sm text-gray-500">
-            Complete the verification steps below to start working. Your profile is reviewed by
-            a cooperative administrator before you can accept jobs.
+            Verify your Aadhaar with a Secure QR scan and OTP — once complete you will be live
+            and can start accepting jobs immediately.
           </p>
         </div>
         <WorkerRegistrationForm user={user} />

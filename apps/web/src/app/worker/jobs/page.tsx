@@ -1,19 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDateTime, getStatusColor } from "@/lib/utils";
-import { MapPin, Phone, CheckCircle, XCircle, Navigation } from "lucide-react";
-import type { BookingStatus } from "@/lib/types";
-
-const mockJobs = [
-  { id: "1", bookingRef: "CG-X1Y2Z3", service: { name: "Plumbing Repair" }, consumer: { name: "Amit Sharma", phone: "9876543210" }, address: "45 Park Lane, Delhi", quotedPrice: 500, status: "ACCEPTED" as const, createdAt: new Date().toISOString(), paymentStatus: "HELD_IN_ESCROW" as const, commissionRate: 4 },
-  { id: "2", bookingRef: "CG-PENDING1", service: { name: "AC Repair" }, consumer: { name: "Neha Gupta" }, address: "67 MG Road, Delhi", quotedPrice: 600, status: "PENDING" as const, createdAt: new Date(Date.now() - 600000).toISOString(), paymentStatus: "PENDING" as const, commissionRate: 4 },
-  { id: "3", bookingRef: "CG-PENDING2", service: { name: "Electrical Work" }, consumer: { name: "Vikram Singh" }, address: "89 Civil Lines, Delhi", quotedPrice: 400, status: "PENDING" as const, createdAt: new Date(Date.now() - 900000).toISOString(), paymentStatus: "PENDING" as const, commissionRate: 4 },
-  { id: "4", bookingRef: "CG-A1B2C3D4", service: { name: "House Cleaning" }, consumer: { name: "Priya Verma" }, address: "12 Sector 5, Delhi", quotedPrice: 300, status: "COMPLETED" as const, createdAt: new Date(Date.now() - 86400000).toISOString(), paymentStatus: "COMPLETED" as const, commissionRate: 4 },
-];
+import { apiGet, apiPatch } from "@/lib/api";
+import { useToast } from "@/components/providers/ToastProvider";
+import { MapPin, Phone, CheckCircle, XCircle, Navigation, Wrench, PlayCircle, Loader2 } from "lucide-react";
+import type { Booking, BookingStatus } from "@/lib/types";
 
 type TabFilter = "PENDING" | "ACTIVE" | "COMPLETED";
 
@@ -23,14 +18,52 @@ const tabs: { label: string; filter: TabFilter }[] = [
   { label: "Completed", filter: "COMPLETED" },
 ];
 
-export default function WorkerJobsPage() {
-  const [activeTab, setActiveTab] = useState<TabFilter>("PENDING");
+const ACTIVE_STATUSES: BookingStatus[] = ["ACCEPTED", "EN_ROUTE", "IN_PROGRESS"];
 
-  const filtered = mockJobs.filter((j) => {
+export default function WorkerJobsPage() {
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<TabFilter>("PENDING");
+  const [jobs, setJobs] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const fetchJobs = useCallback(async () => {
+    try {
+      const res = await apiGet<{ success: boolean; data: Booking[] }>("/bookings");
+      if (res.success) setJobs(res.data || []);
+    } catch {
+      toast({ title: "Failed to load jobs", variant: "danger" });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => { fetchJobs(); }, [fetchJobs]);
+
+  const updateStatus = async (booking: Booking, status: BookingStatus) => {
+    setBusyId(booking.id);
+    try {
+      const res = await apiPatch<{ success: boolean; error?: string }>(`/bookings/${booking.id}/status`, { status });
+      if (res.success) {
+        toast({ title: "Status updated", variant: "success" });
+        fetchJobs();
+      } else {
+        toast({ title: res.error || "Could not update status", variant: "danger" });
+      }
+    } catch {
+      toast({ title: "Could not update status", variant: "danger" });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const filtered = jobs.filter((j) => {
     if (activeTab === "PENDING") return j.status === "PENDING";
-    if (activeTab === "ACTIVE") return ["ACCEPTED", "EN_ROUTE", "IN_PROGRESS"].includes(j.status);
+    if (activeTab === "ACTIVE") return ACTIVE_STATUSES.includes(j.status);
     return j.status === "COMPLETED";
   });
+
+  const pendingCount = jobs.filter((j) => j.status === "PENDING").length;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -47,18 +80,20 @@ export default function WorkerJobsPage() {
             )}
           >
             {t.label}
-            {t.filter === "PENDING" && (
+            {t.filter === "PENDING" && pendingCount > 0 && (
               <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">
-                {mockJobs.filter((j) => j.status === "PENDING").length}
+                {pendingCount}
               </span>
             )}
           </button>
         ))}
       </div>
 
-      <div className="space-y-3">
-        {filtered.length > 0 ? (
-          filtered.map((j) => (
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>
+      ) : filtered.length > 0 ? (
+        <div className="space-y-3">
+          {filtered.map((j) => (
             <div key={j.id} className="rounded-xl border bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between">
                 <div>
@@ -66,45 +101,61 @@ export default function WorkerJobsPage() {
                     <span className="font-mono text-xs text-gray-400">{j.bookingRef}</span>
                     <Badge className={getStatusColor(j.status)}>{j.status.replace("_", " ")}</Badge>
                   </div>
-                  <h4 className="mt-1 font-medium text-gray-900">{j.service.name}</h4>
-                  <p className="text-sm text-gray-500">{j.consumer.name}</p>
+                  <h4 className="mt-1 font-medium text-gray-900">{j.service?.name || "Service"}</h4>
+                  <p className="text-sm text-gray-500">{j.consumer?.name}</p>
                   <div className="mt-1 flex items-center gap-1 text-xs text-gray-400">
                     <MapPin className="h-3 w-3" /> {j.address}
                   </div>
+                  {j.consumer?.phone && (
+                    <a href={`tel:${j.consumer.phone}`} className="mt-1 inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline">
+                      <Phone className="h-3 w-3" /> {j.consumer.phone}
+                    </a>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-gray-900">{formatCurrency(j.quotedPrice)}</p>
                   <p className="text-xs text-gray-400">{formatDateTime(j.createdAt)}</p>
+                  <p className="text-xs text-gray-400">Commission: {j.commissionRate}%</p>
                 </div>
               </div>
               <div className="mt-4 flex gap-2 border-t pt-3">
                 {j.status === "PENDING" && (
                   <>
-                    <Button size="sm" variant="secondary">
+                    <Button size="sm" variant="secondary" loading={busyId === j.id} onClick={() => updateStatus(j, "ACCEPTED")}>
                       <CheckCircle className="mr-1 h-3 w-3" /> Accept
                     </Button>
-                    <Button size="sm" variant="ghost">
+                    <Button size="sm" variant="ghost" loading={busyId === j.id} onClick={() => updateStatus(j, "CANCELLED")}>
                       <XCircle className="mr-1 h-3 w-3 text-red-500" /> Decline
                     </Button>
                   </>
                 )}
-                {["ACCEPTED", "EN_ROUTE"].includes(j.status) && (
-                  <Button size="sm" variant="outline">
-                    <Navigation className="mr-1 h-3 w-3" /> Navigate
+                {j.status === "ACCEPTED" && (
+                  <Button size="sm" variant="outline" loading={busyId === j.id} onClick={() => updateStatus(j, "EN_ROUTE")}>
+                    <Navigation className="mr-1 h-3 w-3" /> Start (En Route)
+                  </Button>
+                )}
+                {j.status === "EN_ROUTE" && (
+                  <Button size="sm" variant="outline" loading={busyId === j.id} onClick={() => updateStatus(j, "IN_PROGRESS")}>
+                    <Wrench className="mr-1 h-3 w-3" /> Mark In Progress
+                  </Button>
+                )}
+                {j.status === "IN_PROGRESS" && (
+                  <Button size="sm" variant="secondary" loading={busyId === j.id} onClick={() => updateStatus(j, "COMPLETED")}>
+                    <PlayCircle className="mr-1 h-3 w-3" /> Complete Job
                   </Button>
                 )}
                 {j.status === "COMPLETED" && (
-                  <Badge variant="success">Paid {formatCurrency(j.quotedPrice * 0.96)}</Badge>
+                  <Badge variant="success">Paid {formatCurrency((j.workerPayout ?? j.quotedPrice))}</Badge>
                 )}
               </div>
             </div>
-          ))
-        ) : (
-          <div className="rounded-xl border bg-white py-16 text-center">
-            <p className="text-gray-400">No {activeTab.toLowerCase()} jobs</p>
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border bg-white py-16 text-center">
+          <p className="text-gray-400">No {activeTab.toLowerCase()} jobs</p>
+        </div>
+      )}
     </div>
   );
 }

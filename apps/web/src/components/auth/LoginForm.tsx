@@ -5,13 +5,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "./PhoneInput";
 import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/components/providers/ToastProvider";
 import { useI18n } from "@/i18n/I18nProvider";
+import { getRoleDashboardPath } from "@/lib/utils";
 
 const loginSchema = z.object({
   phone: z.string().length(10, "Enter a valid 10-digit phone number"),
@@ -42,14 +42,8 @@ export function LoginForm() {
       if (res.success && res.data) {
         login(res.data.user, res.data.token);
         toast({ title: "Welcome back!", variant: "success" });
-        const role = res.data.user.role;
-        const home =
-          role === "WORKER" ? "/worker/dashboard"
-          : role === "COOP_ADMIN" ? "/coop-admin/dashboard"
-          : role === "MINISTRY_SUPER_ADMIN" ? "/admin/dashboard"
-          : "/consumer/dashboard";
         // Full page navigation guarantees a fresh client realm for the account.
-        window.location.href = home;
+        window.location.href = getRoleDashboardPath(res.data.user.role);
       } else {
         toast({ title: res.error || "Login failed", variant: "danger" });
       }

@@ -15,6 +15,27 @@ function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function normalizeSkill(skill: string): string {
+  return skill.trim().toLowerCase().replace(/_/g, "-").replace(/\s+/g, "-");
+}
+
+function matchesSkills(workerSkills: string[], requiredSkills?: string[]): boolean {
+  if (!requiredSkills || requiredSkills.length === 0) return true;
+  const workerSet = new Set(workerSkills.map(normalizeSkill));
+  return requiredSkills.some((skill) => workerSet.has(normalizeSkill(skill)));
+}
+
+function workerMatchScore(worker: {
+  avgRating: number;
+  totalJobs: number;
+  distanceKm: number;
+}, radiusKm: number): number {
+  const distanceScore = Math.max(0, 1 - worker.distanceKm / Math.max(radiusKm, 1)) * 60;
+  const ratingScore = (Number(worker.avgRating || 0) / 5) * 25;
+  const trackRecordScore = Math.min(Number(worker.totalJobs || 0) / 200, 1) * 15;
+  return Math.round((distanceScore + ratingScore + trackRecordScore) * 10) / 10;
+}
+
 export async function registerWorker(
   userId: string,
   data: {
@@ -92,6 +113,9 @@ export async function updateLocation(workerId: string, lat: number, lng: number)
 export async function setAvailability(workerId: string, data: { isAvailable: boolean; isOnDuty: boolean }): Promise<any> {
   const profile = await prisma.workerProfile.findUnique({ where: { id: workerId } });
   if (!profile) throw new AppError("Worker profile not found", 404);
+  if (data.isOnDuty && profile.status !== "VERIFIED") {
+    throw new AppError("Worker must be approved before going on duty", 403);
+  }
   if (data.isOnDuty && !data.isAvailable) throw new AppError("Cannot be on duty if not available", 400);
   const updated = await prisma.workerProfile.update({
     where: { id: workerId },
@@ -197,7 +221,6 @@ export async function searchWorkers(
 ): Promise<any[]> {
   const where: any = { status: "VERIFIED", latitude: { not: null }, longitude: { not: null }, user: { isActive: true } };
   if (coopId) where.coopId = coopId;
-  if (skillTags && skillTags.length > 0) where.skillTags = { hasSome: skillTags };
   const candidates = await prisma.workerProfile.findMany({
     where, include: { user: { select: { id: true, name: true } }, coop: { select: { name: true } } }, take: 100,
   });
@@ -208,8 +231,14 @@ export async function searchWorkers(
       bio: w.bio, experienceYears: w.experienceYears, isAvailable: w.isAvailable, isOnDuty: w.isOnDuty,
       distanceKm: Math.round(haversineDistance(lat, lng, w.latitude!, w.longitude!) * 100) / 100,
     }))
+    .filter(w => matchesSkills(w.skillTags, skillTags))
     .filter(w => w.distanceKm <= radiusKm)
-    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .map((w) => ({
+      ...w,
+      etaMinutes: Math.max(10, Math.round(w.distanceKm * 5)),
+      matchScore: workerMatchScore(w, radiusKm),
+    }))
+    .sort((a, b) => b.matchScore - a.matchScore || a.distanceKm - b.distanceKm)
     .slice(0, 100);
 }
 

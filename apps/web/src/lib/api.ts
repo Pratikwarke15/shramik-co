@@ -1,7 +1,15 @@
 import axios, { AxiosRequestConfig } from "axios";
 
+function resolveBaseUrl(): string {
+  // Explicitly configured backend URL wins (used in local dev and/or Vercel env).
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  // Production: fall back to a relative /api/v1 base, which Vercel's
+  // vercel.json rewrite forwards to the hosted backend.
+  return process.env.NODE_ENV === "development" ? "http://localhost:4000" : "";
+}
+
 const api = axios.create({
-  baseURL: (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000") + "/api/v1",
+  baseURL: resolveBaseUrl() + "/api/v1",
   headers: { "Content-Type": "application/json" },
 });
 

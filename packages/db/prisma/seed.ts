@@ -194,7 +194,7 @@ async function seedWorkers(coops: CoopSeed[]): Promise<WorkerSeed[]> {
         id: profileId, userId, coopId: coop.id, status: 'VERIFIED', skillTags: data.skills,
         bio: `${data.name} is an experienced service professional with a track record of quality work.`,
         experienceYears: Math.floor(Math.random() * 10) + 2,
-        latitude: lat, longitude: lng, isAvailable: true, isOnDuty: false,
+        latitude: lat, longitude: lng, isAvailable: true, isOnDuty: true,
         avgRating: ratings[i], totalJobs: jobs[i],
         totalEarnings: jobs[i] * 800, walletBalance: wallets[i],
         kycStatus: 'VERIFIED', aadhaarVerified: true,

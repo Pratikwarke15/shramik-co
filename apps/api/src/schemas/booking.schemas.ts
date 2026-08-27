@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const createBookingSchema = z.object({
   serviceId: z.string().uuid("Invalid service ID"),
+  workerId: z.string().uuid("Invalid worker ID").optional(),
   address: z
     .string()
     .min(5, "Address must be at least 5 characters")

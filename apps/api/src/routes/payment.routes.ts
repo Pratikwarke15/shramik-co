@@ -6,17 +6,17 @@ import prisma from "../lib/prisma";
 
 const router = Router();
 
-router.post("/initiate", authenticate, asyncHandler(async (req, res) => {
+router.post("/initiate", authenticate, authorize("CONSUMER"), asyncHandler(async (req, res) => {
   const { bookingId } = req.body;
   if (!bookingId) { res.status(400).json({ success: false, error: "bookingId required" }); return; }
-  const payment = await paymentService.initiatePayment(bookingId);
+  const payment = await paymentService.initiatePayment(bookingId, req.user!.id);
   res.json({ success: true, message: "Payment initiated", data: payment });
 }));
 
-router.post("/confirm", authenticate, asyncHandler(async (req, res) => {
+router.post("/confirm", authenticate, authorize("CONSUMER"), asyncHandler(async (req, res) => {
   const { bookingId, paymentRef } = req.body;
   if (!bookingId || !paymentRef) { res.status(400).json({ success: false, error: "bookingId and paymentRef required" }); return; }
-  const result = await paymentService.confirmPayment(bookingId, paymentRef);
+  const result = await paymentService.confirmPayment(bookingId, paymentRef, req.user!.id);
   res.json({ success: true, message: "Payment confirmed", data: result });
 }));
 
@@ -38,17 +38,22 @@ router.get("/transactions", authenticate, authorize("WORKER"), asyncHandler(asyn
   res.json({ success: true, data: transactions });
 }));
 
-router.post("/create-order", authenticate, asyncHandler(async (req, res) => {
-  const { amount, receipt } = req.body;
+router.post("/create-order", authenticate, authorize("CONSUMER"), asyncHandler(async (req, res) => {
+  const { amount, receipt, bookingId } = req.body;
+  if (bookingId) {
+    const order = await paymentService.createOrderForBooking(bookingId, req.user!.id);
+    res.json({ success: true, data: order });
+    return;
+  }
   if (!amount || !receipt) {
-    res.status(400).json({ success: false, error: "amount (in paise) and receipt are required" });
+    res.status(400).json({ success: false, error: "bookingId or amount (in paise) and receipt are required" });
     return;
   }
   const order = await paymentService.createOrder(amount, receipt);
   res.json({ success: true, data: order });
 }));
 
-router.post("/verify", authenticate, asyncHandler(async (req, res) => {
+router.post("/verify", authenticate, authorize("CONSUMER"), asyncHandler(async (req, res) => {
   const { orderId, paymentId, signature, bookingId } = req.body;
   if (!orderId || !paymentId || !signature || !bookingId) {
     res.status(400).json({ success: false, error: "orderId, paymentId, signature, and bookingId are required" });
@@ -59,13 +64,17 @@ router.post("/verify", authenticate, asyncHandler(async (req, res) => {
     res.status(400).json({ success: false, error: "Invalid payment signature" });
     return;
   }
-  const result = await paymentService.confirmPayment(bookingId, paymentId);
+  const result = await paymentService.confirmPayment(bookingId, paymentId, req.user!.id);
   res.json({ success: true, message: "Payment verified and confirmed", data: result });
 }));
 
 router.get("/key", (_req, res) => {
   const keyId = process.env.RAZORPAY_KEY_ID;
   if (!keyId) {
+    if (process.env.NODE_ENV !== "production") {
+      res.json({ success: true, data: { keyId: "rzp_test_mock_key", mock: true } });
+      return;
+    }
     res.status(500).json({ success: false, error: "Razorpay key not configured" });
     return;
   }
@@ -73,7 +82,7 @@ router.get("/key", (_req, res) => {
 });
 
 // Dedicated signature-verification endpoint (used by the frontend checkout before confirming).
-router.post("/verify-signature", authenticate, asyncHandler(async (req, res) => {
+router.post("/verify-signature", authenticate, authorize("CONSUMER"), asyncHandler(async (req, res) => {
   const { orderId, paymentId, signature } = req.body;
   if (!orderId || !paymentId || !signature) {
     res.status(400).json({ success: false, error: "orderId, paymentId, and signature are required" });

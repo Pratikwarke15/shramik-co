@@ -11,8 +11,8 @@ demand forecasting, and transparent cooperative governance.
 | Service    | URL |
 |------------|-----|
 | Website    | https://shramik-co.vercel.app |
-| API        | https://coopgig.onrender.com |
-| API Docs   | https://coopgig.onrender.com/docs |
+| API        | https://shramik-co-python-api.onrender.com |
+| API Docs   | https://shramik-co-python-api.onrender.com/docs |
 
 Demo logins: workers/co-op admins/consumers use phone 98123xxxxx–9876543212 (password `password123`);
 Federation (ministry) super admin: phone `9999999999` / `admin123`. Repo: https://github.com/Pratikwarke15/shramik-co
@@ -30,10 +30,10 @@ Federation (ministry) super admin: phone `9999999999` / `admin123`. Repo: https:
 └───────────────────────────┬─────────────────────────────────────┘
                             │  HTTPS / JSON (CORS, JWT Bearer)
 ┌───────────────────────────▼─────────────────────────────────────┐
-│                         API (Express + TypeScript)                 │
-│   Auth · Bookings · Workers · Co-ops · Payments · Disputes ·       │
-│   Social-Security · Upload · Analytics (AI Forecast) · WebSocket   │
-│   Deployed: Render (free tier)                                     │
+│                         API (Python FastAPI)                            │
+│   Auth · Bookings · Workers · Co-ops · Payments · Disputes ·             │
+│   Social-Security · Upload · Verification (Aadhaar Secure QR + OTP)      │
+│   Deployed: Render (free tier, Docker)                                   │
 └───────────────────────────┬─────────────────────────────────────┘
             ┌────────────────┼────────────────┐
             ▼                ▼                ▼
@@ -49,11 +49,11 @@ Federation (ministry) super admin: phone `9999999999` / `admin123`. Repo: https:
 | Layer        | Technology |
 |--------------|-----------|
 | Frontend     | Next.js 14 (App Router), TypeScript, TailwindCSS, TanStack Query, React Hook Form, Zod, `next-pwa` |
-| Backend      | Express 5, TypeScript, Zod validation, Winston logging, Helmet, CORS, Socket.IO |
-| Database     | Supabase PostgreSQL (connection pooler / PgBouncer) + Prisma ORM |
+| Backend      | Python FastAPI, asyncpg, Pydantic, PyJWT, JWT auth + phone/OTP |
+| Database     | Supabase PostgreSQL (connection pooler / PgBouncer) + asyncpg |
 | Auth         | JWT (access token) + phone/OTP verification (2Factor SMS with dev console fallback) |
 | Payments     | Razorpay Test Mode (UPI / card mock, escrow-held commission model) |
-| File Storage | Supabase Storage |
+| File Storage | Local disk via FastAPI StaticFiles (`/uploads`) served from the API |
 | Geospatial   | Application-level Haversine radius matching (PostGIS-compatible schema fields) |
 | AI/ML        | Statistical demand-forecasting engine (seasonal-weighted history + linear-trend regression) |
 | i18n         | Custom lightweight provider with English, Hindi, Marathi catalogs |
@@ -188,7 +188,7 @@ apps/web/                Next.js frontend (app, components, i18n, store)
 - All inputs validated with Zod schemas; unknown fields stripped.
 
 ## 📄 API Documentation
-Interactive Swagger UI: `https://<api>/api/docs`
+Interactive Swagger UI: `https://<api>/docs`
 
 ## 🤝 Contributing
 Monorepo uses npm workspaces. Run `npm install` at root. Lint/typecheck before PRs.

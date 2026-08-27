@@ -39,7 +39,7 @@ export function BookingCard({ booking, onCancel }: BookingCardProps) {
 
       <div className="mt-4 flex items-center gap-2">
         {["PENDING", "ACCEPTED"].includes(booking.status) && (
-          <Link href={`/bookings/${booking.id}`}>
+          <Link href={`/consumer/bookings/${booking.id}`}>
             <Button size="sm" variant="outline">Track</Button>
           </Link>
         )}
@@ -49,7 +49,7 @@ export function BookingCard({ booking, onCancel }: BookingCardProps) {
           </Button>
         )}
         {booking.status === "COMPLETED" && !booking.rating && (
-          <Link href={`/bookings/${booking.id}`}>
+          <Link href={`/consumer/bookings/${booking.id}`}>
             <Button size="sm" variant="secondary">Rate</Button>
           </Link>
         )}

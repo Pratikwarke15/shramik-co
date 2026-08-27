@@ -1,61 +1,76 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { WalletBalance } from "@/components/dashboard/WalletBalance";
-import { DividendCard } from "@/components/dashboard/DividendCard";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
-import type { WalletTransaction, Dividend } from "@/lib/types";
+import { Loader2 } from "lucide-react";
+import { apiGet } from "@/lib/api";
+import type { WalletTransaction } from "@/lib/types";
 
-const mockTransactions: WalletTransaction[] = [
-  { id: "t1", workerId: "w1", type: "PAYMENT", amount: 500, balanceAfter: 12000, description: "Plumbing repair", createdAt: new Date().toISOString() },
-  { id: "t2", workerId: "w1", type: "PAYOUT", amount: 3000, balanceAfter: 11500, description: "Bank transfer", createdAt: new Date(Date.now() - 86400000).toISOString() },
-  { id: "t3", workerId: "w1", type: "COMMISSION", amount: 20, balanceAfter: 14500, description: "Commission deduction", createdAt: new Date(Date.now() - 172800000).toISOString() },
-  { id: "t4", workerId: "w1", type: "SOCIAL_SECURITY_DEDUCTION", amount: 50, balanceAfter: 14520, description: "Health insurance", createdAt: new Date(Date.now() - 259200000).toISOString() },
-];
-
-const mockDividends: Dividend[] = [
-  { id: "d1", workerId: "w1", period: "Q3 2026", periodStart: "2026-07-01", periodEnd: "2026-09-30", jobsCompleted: 45, totalEarnings: 28000, patronagePoints: 450, dividendAmount: 1200, status: "PENDING" },
-  { id: "d2", workerId: "w1", period: "Q2 2026", periodStart: "2026-04-01", periodEnd: "2026-06-30", jobsCompleted: 38, totalEarnings: 24000, patronagePoints: 380, dividendAmount: 960, status: "PAID", paidAt: "2026-07-15" },
-];
+interface Contribution { fundType: string; totalContributed: number; employerMatch: number; balance: number; isOptedIn: boolean }
+interface TransactionsRes { transactions: WalletTransaction[] }
 
 export default function WorkerEarningsPage() {
+  const [wallet, setWallet] = useState(0);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAll = useCallback(async () => {
+    try {
+      const [w, t, c] = await Promise.all([
+        apiGet<{ success: boolean; data: { walletBalance: number } }>("/payments/wallet"),
+        apiGet<{ success: boolean; data: TransactionsRes }>("/payments/transactions"),
+        apiGet<{ success: boolean; data: Contribution[] }>("/social-security/contributions"),
+      ]);
+      if (w.success && w.data) setWallet(w.data.walletBalance || 0);
+      if (t.success && t.data) setTransactions(t.data.transactions || []);
+      if (c.success) setContributions(c.data || []);
+    } catch {
+      setTransactions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  if (loading) {
+    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <h1 className="text-2xl font-bold text-gray-900 font-heading">Earnings</h1>
 
-      <WalletBalance
-        balance={12000}
-        transactions={mockTransactions}
-        onWithdraw={() => alert("Withdrawal coming soon!")}
-      />
+      <WalletBalance balance={wallet} transactions={transactions} />
 
       <RevenueChart title="Earnings Overview" />
 
-      <div>
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Dividends</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {mockDividends.map((d) => (
-            <DividendCard key={d.id} dividend={d} />
-          ))}
-        </div>
-      </div>
-
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <h3 className="mb-4 text-lg font-semibold text-gray-900">Social Security Contributions</h3>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[
-            { type: "Health Insurance", contributed: 2400, match: 1200 },
-            { type: "Emergency Fund", contributed: 1800, match: 900 },
-            { type: "Retirement", contributed: 3000, match: 1500 },
-          ].map((s) => (
-            <div key={s.type} className="rounded-lg bg-gray-50 p-4">
-              <p className="text-sm font-medium text-gray-900">{s.type}</p>
-              <p className="mt-1 text-xs text-gray-500">Your: ₹{s.contributed.toLocaleString()} | Match: ₹{s.match.toLocaleString()}</p>
-              <div className="mt-2 h-1.5 rounded-full bg-gray-200">
-                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(100, (s.contributed / 5000) * 100)}%` }} />
+        {contributions.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {contributions.map((s) => (
+              <div key={s.fundType} className="rounded-lg bg-gray-50 p-4">
+                <p className="text-sm font-medium text-gray-900">{s.fundType.replace(/_/g, " ")}</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Your: ₹{s.totalContributed.toLocaleString()} | Match: ₹{s.employerMatch.toLocaleString()}
+                </p>
+                <div className="mt-2 h-1.5 rounded-full bg-gray-200">
+                  <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(100, (s.totalContributed / 5000) * 100)}%` }} />
+                </div>
+                {s.isOptedIn ? (
+                  <p className="mt-2 text-xs font-medium text-emerald-600">Opted In</p>
+                ) : (
+                  <p className="mt-2 text-xs text-gray-400">Not opted in</p>
+                )}
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">No social security contributions yet.</p>
+        )}
       </div>
     </div>
   );

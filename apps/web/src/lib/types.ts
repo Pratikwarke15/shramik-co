@@ -1,6 +1,11 @@
 export type UserRole = "CONSUMER" | "WORKER" | "COOP_ADMIN" | "MINISTRY_SUPER_ADMIN";
 
-export type WorkerStatus = "PENDING_VERIFICATION" | "VERIFIED" | "SUSPENDED" | "DEACTIVATED";
+export type WorkerStatus =
+  | "PENDING_ADMIN_APPROVAL"
+  | "PENDING_VERIFICATION"
+  | "VERIFIED"
+  | "SUSPENDED"
+  | "DEACTIVATED";
 
 export type BookingStatus =
   | "PENDING"

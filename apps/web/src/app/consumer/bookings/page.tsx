@@ -1,15 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { BookingCard } from "@/components/booking/BookingCard";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { BookingStatus } from "@/lib/types";
-
-const mockBookings = [
-  { id: "1", bookingRef: "CG-A1B2C3D4", service: { name: "Plumbing Repair" }, worker: { user: { name: "Rajesh K." } }, status: "IN_PROGRESS" as const, quotedPrice: 500, createdAt: new Date().toISOString(), address: "123 Main St", paymentStatus: "HELD_IN_ESCROW" as const, commissionRate: 4 },
-  { id: "2", bookingRef: "CG-E5F6G7H8", service: { name: "House Cleaning" }, worker: { user: { name: "Priya D." } }, status: "COMPLETED" as const, quotedPrice: 350, rating: 5, createdAt: new Date(Date.now() - 86400000).toISOString(), address: "456 Oak Ave", paymentStatus: "COMPLETED" as const, commissionRate: 4 },
-  { id: "3", bookingRef: "CG-I9J0K1L2", service: { name: "Electrical Work" }, status: "PENDING" as const, quotedPrice: 400, createdAt: new Date(Date.now() - 172800000).toISOString(), address: "789 Pine Rd", paymentStatus: "PENDING" as const, commissionRate: 4 },
-];
+import { apiGet, apiPost } from "@/lib/api";
+import { useToast } from "@/components/providers/ToastProvider";
+import type { Booking, BookingStatus } from "@/lib/types";
 
 const tabs: { label: string; filter: BookingStatus | "ALL" }[] = [
   { label: "All", filter: "ALL" },
@@ -19,9 +16,39 @@ const tabs: { label: string; filter: BookingStatus | "ALL" }[] = [
 ];
 
 export default function BookingsPage() {
+  const { toast } = useToast();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"ALL" | BookingStatus>("ALL");
 
-  const filtered = mockBookings.filter((b) => {
+  const fetchBookings = useCallback(async () => {
+    try {
+      const res = await apiGet<{ success: boolean; data: Booking[] }>("/bookings");
+      if (res.success) setBookings(res.data || []);
+    } catch {
+      toast({ title: "Failed to load bookings", variant: "danger" });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => { fetchBookings(); }, [fetchBookings]);
+
+  const handleCancel = async (id: string) => {
+    try {
+      const res = await apiPost<{ success: boolean; error?: string }>(`/bookings/${id}/cancel`, { reason: "Cancelled by consumer" });
+      if (res.success) {
+        toast({ title: "Booking cancelled", variant: "success" });
+        fetchBookings();
+      } else {
+        toast({ title: res.error || "Could not cancel", variant: "danger" });
+      }
+    } catch {
+      toast({ title: "Could not cancel booking", variant: "danger" });
+    }
+  };
+
+  const filtered = bookings.filter((b) => {
     if (activeTab === "ALL") return true;
     if (activeTab === "PENDING") return ["PENDING", "ACCEPTED", "EN_ROUTE", "IN_PROGRESS"].includes(b.status);
     return b.status === activeTab;
@@ -48,15 +75,17 @@ export default function BookingsPage() {
         ))}
       </div>
 
-      <div className="space-y-3">
-        {filtered.length > 0 ? (
-          filtered.map((b) => <BookingCard key={b.id} booking={b as any} />)
-        ) : (
-          <div className="rounded-xl border bg-white py-16 text-center">
-            <p className="text-gray-400">No bookings found</p>
-          </div>
-        )}
-      </div>
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>
+      ) : filtered.length > 0 ? (
+        <div className="space-y-3">
+          {filtered.map((b) => <BookingCard key={b.id} booking={b} onCancel={handleCancel} />)}
+        </div>
+      ) : (
+        <div className="rounded-xl border bg-white py-16 text-center">
+          <p className="text-gray-400">No bookings found</p>
+        </div>
+      )}
     </div>
   );
 }

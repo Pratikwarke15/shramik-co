@@ -14,6 +14,27 @@ function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function normalizeSkill(skill: string): string {
+  return skill.trim().toLowerCase().replace(/_/g, "-").replace(/\s+/g, "-");
+}
+
+function matchesSkills(workerSkills: string[], requiredSkills?: string[]): boolean {
+  if (!requiredSkills || requiredSkills.length === 0) return true;
+  const workerSet = new Set(workerSkills.map(normalizeSkill));
+  return requiredSkills.some((skill) => workerSet.has(normalizeSkill(skill)));
+}
+
+function workerMatchScore(worker: {
+  avgRating: number;
+  totalJobs: number;
+  distanceKm: number;
+}, radiusKm: number): number {
+  const distanceScore = Math.max(0, 1 - worker.distanceKm / Math.max(radiusKm, 1)) * 60;
+  const ratingScore = (Number(worker.avgRating || 0) / 5) * 25;
+  const trackRecordScore = Math.min(Number(worker.totalJobs || 0) / 200, 1) * 15;
+  return Math.round((distanceScore + ratingScore + trackRecordScore) * 10) / 10;
+}
+
 function generateBookingRef(): string {
   const now = new Date();
   const dateStr =
@@ -42,6 +63,7 @@ export async function createBooking(
   consumerId: string,
   data: {
     serviceId: string;
+    workerId?: string;
     address: string;
     description?: string;
     scheduledAt?: string;
@@ -60,10 +82,13 @@ export async function createBooking(
 
   const quotedPrice = Number(service.basePrice);
   const commissionRate = Math.min(Number(service.coop.commissionRate), 5);
+  const serviceSkills = [service.categorySlug, service.categoryName];
+  const radiusKm = service.coop.radiusKm || 10;
 
   const booking = await prisma.$transaction(async (tx) => {
     const candidates = await tx.workerProfile.findMany({
       where: {
+        coopId: service.coopId,
         status: "VERIFIED",
         isAvailable: true,
         isOnDuty: true,
@@ -74,15 +99,32 @@ export async function createBooking(
       include: { user: { select: { id: true, name: true, phone: true } } },
     });
 
-    let nearest: any = null;
-    let minDist = Infinity;
-    for (const c of candidates) {
+    let matchedWorkers = candidates.map((c) => {
       const d = haversineDistance(data.latitude, data.longitude, c.latitude!, c.longitude!);
-      if (d <= 10 && d < minDist) {
-        minDist = d;
-        nearest = c;
+      const distanceKm = Math.round(d * 100) / 100;
+      return {
+        worker: c,
+        distanceKm,
+        matchScore: workerMatchScore(
+          { avgRating: Number(c.avgRating), totalJobs: c.totalJobs, distanceKm },
+          radiusKm
+        ),
+      };
+    })
+      .filter((entry) => entry.distanceKm <= radiusKm)
+      .filter((entry) => matchesSkills(entry.worker.skillTags, serviceSkills));
+
+    if (data.workerId) {
+      const selected = matchedWorkers.find((entry) => entry.worker.id === data.workerId);
+      if (!selected) {
+        throw new AppError("Selected worker is unavailable, out of range, or not skilled for this service", 400);
       }
+      matchedWorkers = [selected];
     }
+
+    const nearest = matchedWorkers.sort(
+      (a, b) => b.matchScore - a.matchScore || a.distanceKm - b.distanceKm
+    )[0]?.worker || null;
 
     const bookingRef = generateBookingRef();
     const workerId = nearest?.id || null;
@@ -261,6 +303,10 @@ export async function rateBooking(
     throw new AppError("Only the consumer can rate this booking", 403);
   }
 
+  if (!booking.workerId) {
+    throw new AppError("Cannot rate a booking without an assigned worker", 400);
+  }
+
   const existingReview = booking.reviews.find((r) => r.authorId === userId);
   if (existingReview) {
     throw new AppError("You have already rated this booking", 409);
@@ -319,9 +365,6 @@ export async function getNearbyWorkers(
   };
 
   if (coopId) where.coopId = coopId;
-  if (skillTags && skillTags.length > 0) {
-    where.skillTags = { hasSome: skillTags };
-  }
 
   const candidates = await prisma.workerProfile.findMany({
     where,
@@ -343,8 +386,14 @@ export async function getNearbyWorkers(
         distanceKm: Math.round(distanceKm * 100) / 100,
       };
     })
+    .filter((w) => matchesSkills(w.skillTags, skillTags))
     .filter((w) => w.distanceKm <= radiusKm)
-    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .map((w) => ({
+      ...w,
+      etaMinutes: Math.max(10, Math.round(w.distanceKm * 5)),
+      matchScore: workerMatchScore(w, radiusKm),
+    }))
+    .sort((a, b) => b.matchScore - a.matchScore || a.distanceKm - b.distanceKm)
     .slice(0, 50);
 
   return workers;

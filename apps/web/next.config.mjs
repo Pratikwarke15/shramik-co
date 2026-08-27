@@ -14,11 +14,13 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "http", hostname: "localhost" },
       { protocol: "http", hostname: "127.0.0.1" },
+      { protocol: "https", hostname: "shramik-co-python-api.onrender.com" },
+      { protocol: "https", hostname: "coopgig.onrender.com" },
       { protocol: "https", hostname: "rzagxntjipxfinvlajos.supabase.co" },
     ],
   },
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000",
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "",
   },
 };
 

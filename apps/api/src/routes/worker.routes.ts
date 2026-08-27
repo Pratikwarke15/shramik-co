@@ -8,7 +8,7 @@ import prisma from "../lib/prisma";
 
 const router = Router();
 
-router.post("/register", authenticate, validate(registerWorkerSchema), asyncHandler(async (req, res) => {
+router.post("/register", authenticate, authorize("WORKER"), validate(registerWorkerSchema), asyncHandler(async (req, res) => {
   const profile = await workerService.registerWorker(req.user!.id, req.body);
   res.status(201).json({ success: true, message: "Worker registered", data: profile });
 }));

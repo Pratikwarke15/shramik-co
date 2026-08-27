@@ -82,9 +82,13 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
       return;
     }
     try {
-      const res = await apiGet<{ success: boolean; data?: { user: User }; error?: string }>("/auth/me");
-      if (res.success && res.data?.user) {
-        const serverUser = res.data.user;
+      const res = await apiGet<{ success: boolean; data?: User | { user: User }; error?: string }>("/auth/me");
+      const serverUser = res.success && res.data
+        ? "user" in res.data
+          ? res.data.user
+          : res.data
+        : null;
+      if (serverUser) {
         const storedUser = useAuthStore.getState().user;
         localStorage.setItem("coopgig_user", JSON.stringify(serverUser));
         set({ user: serverUser, token, isAuthenticated: true, isLoading: false, sessionValidated: true });
@@ -110,4 +114,3 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
     }
   },
 }));
-

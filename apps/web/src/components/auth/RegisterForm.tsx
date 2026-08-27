@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "./PhoneInput";
@@ -13,6 +12,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/components/providers/ToastProvider";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/i18n/I18nProvider";
+import { getRoleDashboardPath } from "@/lib/utils";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -64,9 +64,8 @@ export function RegisterForm() {
         const role = res.data.user.role;
         const home =
           role === "WORKER" ? "/worker/onboarding"
-          : role === "COOP_ADMIN" ? "/coop-admin/dashboard"
-          : role === "MINISTRY_SUPER_ADMIN" ? "/admin/dashboard"
-          : "/consumer/verify";
+          : role === "CONSUMER" ? "/consumer/verify"
+          : getRoleDashboardPath(role);
         window.location.href = home;
       } else {
         toast({ title: res.error || "Registration failed", variant: "danger" });

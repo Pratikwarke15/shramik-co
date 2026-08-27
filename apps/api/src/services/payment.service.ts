@@ -13,6 +13,16 @@ const razorpay = new Razorpay({
 });
 
 export async function createOrder(amountInPaise: number, receipt: string) {
+  if ((!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) && env.NODE_ENV !== "production") {
+    return {
+      id: `order_mock_${Date.now()}`,
+      amount: amountInPaise,
+      currency: "INR",
+      receipt,
+      status: "created",
+      mock: true,
+    };
+  }
   const order = await razorpay.orders.create({
     amount: amountInPaise,
     currency: "INR",
@@ -21,7 +31,48 @@ export async function createOrder(amountInPaise: number, receipt: string) {
   return order;
 }
 
+export async function createOrderForBooking(
+  bookingId: string,
+  consumerId: string
+): Promise<any> {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    select: {
+      id: true,
+      bookingRef: true,
+      consumerId: true,
+      quotedPrice: true,
+      finalPrice: true,
+      paymentStatus: true,
+    },
+  });
+
+  if (!booking) throw new AppError("Booking not found", 404);
+  if (booking.consumerId !== consumerId) {
+    throw new AppError("You can only pay for your own bookings", 403);
+  }
+  if (booking.paymentStatus === "COMPLETED") {
+    throw new AppError("Payment already completed", 409);
+  }
+
+  const amount = Math.round(Number(booking.finalPrice || booking.quotedPrice) * 100);
+  const order = await createOrder(amount, booking.bookingRef);
+
+  if (order && "id" in order) {
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: { paymentRef: String((order as any).id) },
+    });
+  }
+
+  return order;
+}
+
 export function verifyPaymentSignature(orderId: string, paymentId: string, signature: string): boolean {
+  if (orderId.startsWith("order_mock_") && paymentId.startsWith("pay_mock_") && signature === "mock_signature" && env.NODE_ENV !== "production") {
+    return true;
+  }
+  if (!process.env.RAZORPAY_KEY_SECRET) return false;
   const body = orderId + "|" + paymentId;
   const expectedSignature = crypto
     .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
@@ -39,7 +90,7 @@ export async function getPaymentDetails(paymentId: string) {
   return await razorpay.payments.fetch(paymentId);
 }
 
-export async function initiatePayment(bookingId: string): Promise<any> {
+export async function initiatePayment(bookingId: string, consumerId?: string): Promise<any> {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: { service: { include: { coop: true } } },
@@ -47,6 +98,10 @@ export async function initiatePayment(bookingId: string): Promise<any> {
 
   if (!booking) {
     throw new AppError("Booking not found", 404);
+  }
+
+  if (consumerId && booking.consumerId !== consumerId) {
+    throw new AppError("You can only initiate payment for your own booking", 403);
   }
 
   if (booking.paymentStatus !== "PENDING" && booking.paymentStatus !== "FAILED") {
@@ -92,7 +147,8 @@ export async function initiatePayment(bookingId: string): Promise<any> {
 
 export async function confirmPayment(
   bookingId: string,
-  paymentRef: string
+  paymentRef: string,
+  consumerId?: string
 ): Promise<any> {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
@@ -101,6 +157,10 @@ export async function confirmPayment(
 
   if (!booking) {
     throw new AppError("Booking not found", 404);
+  }
+
+  if (consumerId && booking.consumerId !== consumerId) {
+    throw new AppError("You can only confirm payment for your own booking", 403);
   }
 
   if (booking.paymentStatus === "COMPLETED") {
@@ -292,18 +352,17 @@ export async function getTransactionHistory(
     where.type = filters.type as Prisma.EnumTransactionTypeFilter["equals"];
   }
 
-  const [transactions, total] = await Promise.all([
-    prisma.walletTransaction.findMany({
-      where,
-      include: {
-        booking: { select: { id: true, bookingRef: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: limit,
-    }),
-    prisma.walletTransaction.count({ where }),
-  ]);
+  // Sequential to avoid P2024 under Supabase's single-connection pooler.
+  const transactions = await prisma.walletTransaction.findMany({
+    where,
+    include: {
+      booking: { select: { id: true, bookingRef: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    skip,
+    take: limit,
+  });
+  const total = await prisma.walletTransaction.count({ where });
 
   return {
     transactions: transactions.map((t) => ({
@@ -320,6 +379,7 @@ export async function getTransactionHistory(
 export default {
   initiatePayment,
   confirmPayment,
+  createOrderForBooking,
   calculateCommission,
   processPayout,
   getWalletBalance,

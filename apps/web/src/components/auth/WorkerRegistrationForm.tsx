@@ -10,7 +10,7 @@ import { OtpInput } from "@/components/auth/OtpInput";
 import FileUpload from "@/components/ui/FileUpload";
 import { useToast } from "@/components/providers/ToastProvider";
 import { Check, Loader2, Shield, FileCheck, MapPin, User, Briefcase, Upload, Send } from "lucide-react";
-import { apiPost } from "@/lib/api";
+import { apiPost, apiUpload } from "@/lib/api";
 
 interface WorkerRegistrationFormProps {
   user: { id: string; name: string; phone: string; email?: string };
@@ -28,7 +28,7 @@ const STEPS = [
   { num: 3, label: "Skills", icon: Briefcase },
   { num: 4, label: "Location", icon: MapPin },
   { num: 5, label: "Documents", icon: Upload },
-  { num: 6, label: "DigiLocker", icon: Shield },
+  { num: 6, label: "Aadhaar Scan", icon: Shield },
   { num: 7, label: "Aadhaar OTP", icon: FileCheck },
   { num: 8, label: "Submit", icon: Check },
 ];
@@ -61,13 +61,15 @@ export function WorkerRegistrationForm({ user }: WorkerRegistrationFormProps) {
   const [fileName, setFileName] = useState("");
   const [kycDocumentUrl, setKycDocumentUrl] = useState("");
 
-  // Step 6: DigiLocker
+  // Step 6: Aadhaar Scan (Secure QR)
   const [aadhaarNumber, setAadhaarNumber] = useState("");
-  const [digilockerVerified, setDigilockerVerified] = useState(false);
-  const [digilockerData, setDigilockerData] = useState<any>(null);
-  const [digilockerLoading, setDigilockerLoading] = useState(false);
+  const [aadhaarMobile, setAadhaarMobile] = useState(user.phone);
+  const [qrVerified, setQrVerified] = useState(false);
+  const [qrData, setQrData] = useState<any>(null);
+  const [qrLoading, setQrLoading] = useState(false);
 
   // Step 7: Aadhaar OTP
+  const [aadhaarOtpSent, setAadhaarOtpSent] = useState(false);
   const [aadhaarOtpVerified, setAadhaarOtpVerified] = useState(false);
   const [aadhaarOtpLoading, setAadhaarOtpLoading] = useState(false);
 
@@ -105,28 +107,54 @@ export function WorkerRegistrationForm({ user }: WorkerRegistrationFormProps) {
     }
   };
 
-  const verifyDigilocker = async () => {
-    setDigilockerLoading(true);
+  const uploadAadhaarQr = async (file: File) => {
+    setQrLoading(true);
     try {
-      const res = await apiPost<any>("/verification/digilocker", { aadhaarNumber });
+      const form = new FormData();
+      form.append("image", file);
+      const res = await apiUpload<any>("/verification/aadhaar-qr", form);
       if (res.success && res.data.verified) {
-        setDigilockerVerified(true);
-        setDigilockerData(res.data);
-        toast({ title: "DigiLocker verified!", variant: "success" });
+        setQrVerified(true);
+        setQrData(res.data);
+        toast({ title: "Aadhaar Secure QR verified!", variant: "success" });
       } else {
-        toast({ title: res.error || "Verification failed", variant: "danger" });
+        toast({ title: res.error || "QR verification failed", variant: "danger" });
       }
     } catch {
-      toast({ title: "DigiLocker verification failed", variant: "danger" });
+      toast({ title: "Could not read Aadhaar QR. Try a clearer photo.", variant: "danger" });
     } finally {
-      setDigilockerLoading(false);
+      setQrLoading(false);
+    }
+  };
+
+  const sendAadhaarOtp = async () => {
+    setAadhaarOtpLoading(true);
+    try {
+      const res = await apiPost<any>("/verification/aadhaar-otp/send", {
+        aadhaarNumber,
+        mobile: aadhaarMobile,
+      });
+      if (res.success) {
+        setAadhaarOtpSent(true);
+        toast({ title: "OTP sent to your Aadhaar-linked mobile", variant: "success" });
+      } else {
+        toast({ title: res.error || "Failed to send OTP", variant: "danger" });
+      }
+    } catch {
+      toast({ title: "Failed to send Aadhaar OTP", variant: "danger" });
+    } finally {
+      setAadhaarOtpLoading(false);
     }
   };
 
   const verifyAadhaarOtp = async (otp: string) => {
     setAadhaarOtpLoading(true);
     try {
-      const res = await apiPost<any>("/verification/aadhaar-otp", { aadhaarNumber, otp });
+      const res = await apiPost<any>("/verification/aadhaar-otp", {
+        aadhaarNumber,
+        mobile: aadhaarMobile,
+        otp,
+      });
       if (res.success && res.data.verified) {
         setAadhaarOtpVerified(true);
         toast({ title: "Aadhaar OTP verified!", variant: "success" });
@@ -151,13 +179,14 @@ export function WorkerRegistrationForm({ user }: WorkerRegistrationFormProps) {
         longitude: longitude ? parseFloat(longitude) : undefined,
         workAddress: workAddress || undefined,
         aadhaarNumber,
-        aadhaarName: digilockerData?.name,
+        aadhaarName: qrData?.name,
+        aadhaarDob: qrData?.dob || qrData?.yob,
         kycDocumentUrl: kycDocumentUrl || undefined,
-        digilockerRef: digilockerData?.digilockerRef,
+        digilockerRef: qrData?.digilockerRef,
       });
       if (res.success) {
-        toast({ title: "Registration submitted!", variant: "success" });
-        router.push("/worker/pending-approval");
+        toast({ title: "Profile created — you're live!", variant: "success" });
+        router.push("/worker/dashboard");
       } else {
         toast({ title: res.error || "Registration failed", variant: "danger" });
       }
@@ -181,7 +210,7 @@ export function WorkerRegistrationForm({ user }: WorkerRegistrationFormProps) {
       case 3: return selectedSkills.length > 0;
       case 4: return workAddress.length >= 5;
       case 5: return kycDocumentUrl.length > 0;
-      case 6: return digilockerVerified;
+      case 6: return qrVerified;
       case 7: return aadhaarOtpVerified;
       case 8: return true;
       default: return false;
@@ -336,37 +365,95 @@ export function WorkerRegistrationForm({ user }: WorkerRegistrationFormProps) {
           {step === 6 && (
             <div className="space-y-4">
               <div className="rounded-lg bg-blue-50 p-4">
-                <p className="text-sm text-blue-800 font-medium">DigiLocker Identity Verification</p>
+                <p className="text-sm text-blue-800 font-medium">Aadhaar Secure QR Verification</p>
                 <p className="text-xs text-blue-600 mt-1">
-                  In production, this connects to the real DigiLocker API. Currently using mock verification for any valid 12-digit Aadhaar.
+                  Upload a clear photo of the QR code printed on your Aadhaar card. The signed Secure QR is
+                  cryptographically verified on the server and your identity fields are read directly from it.
                 </p>
               </div>
-              <Input
-                label="Aadhaar Number"
-                value={aadhaarNumber}
-                onChange={(e) => setAadhaarNumber(e.target.value.replace(/\D/g, "").slice(0, 12))}
-                placeholder="12-digit Aadhaar number"
-                maxLength={12}
-              />
-              {aadhaarNumber.length === 12 && !digilockerVerified && (
-                <Button onClick={verifyDigilocker} disabled={digilockerLoading} className="w-full">
-                  {digilockerLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Shield className="mr-2 h-4 w-4" />}
-                  Verify with DigiLocker
-                </Button>
-              )}
-              {digilockerVerified && digilockerData && (
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Aadhaar Number"
+                  value={aadhaarNumber}
+                  onChange={(e) => setAadhaarNumber(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                  placeholder="12-digit Aadhaar number"
+                  maxLength={12}
+                />
+                <Input
+                  label="Aadhaar-linked Mobile"
+                  type="tel"
+                  value={aadhaarMobile}
+                  onChange={(e) => setAadhaarMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  placeholder="10-digit mobile on Aadhaar"
+                  maxLength={10}
+                />
+              </div>
+              {!qrVerified ? (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Upload a photo of your Aadhaar card
+                  </label>
+                  <div
+                    className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer bg-gray-50 hover:border-gray-400"
+                    onClick={() => document.getElementById("aadhaar-qr-input")?.click()}
+                    onDragOver={(e) => { e.preventDefault(); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) uploadAadhaarQr(file);
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      id="aadhaar-qr-input"
+                      disabled={qrLoading}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadAadhaarQr(file);
+                      }}
+                    />
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium text-blue-600">Click to browse</span>, drag & drop, or use your camera
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Front or back of the Aadhaar card — the Secure QR is located and verified automatically
+                    </p>
+                  </div>
+                  {qrLoading && (
+                    <p className="mt-2 text-sm text-gray-500 flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Verifying Secure QR...
+                    </p>
+                  )}
+                </div>
+              ) : (
                 <div className="rounded-lg bg-green-50 p-4 space-y-2">
                   <div className="flex items-center gap-2 text-green-700">
                     <Check className="h-5 w-5" />
-                    <span className="font-medium">DigiLocker Verified</span>
+                    <span className="font-medium">Aadhaar Secure QR Verified</span>
                   </div>
-                  <div className="text-sm text-green-800 space-y-1">
-                    <p><span className="font-medium">Name:</span> {digilockerData.name}</p>
-                    <p><span className="font-medium">DOB:</span> {digilockerData.dob}</p>
-                    <p><span className="font-medium">Gender:</span> {digilockerData.gender}</p>
-                    <p><span className="font-medium">Address:</span> {digilockerData.address}</p>
-                    <p className="text-xs text-green-600">Ref: {digilockerData.digilockerRef}</p>
-                  </div>
+                  {qrData && (
+                    <div className="flex gap-4">
+                      {qrData.photo && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={qrData.photo}
+                          alt="Aadhaar profile"
+                          className="h-20 w-20 rounded-lg object-cover border border-green-200"
+                        />
+                      )}
+                      <div className="text-sm text-green-800 space-y-1">
+                        <p><span className="font-medium">Name:</span> {qrData.name}</p>
+                        {qrData.dob && <p><span className="font-medium">DOB:</span> {qrData.dob}</p>}
+                        {qrData.gender && <p><span className="font-medium">Gender:</span> {qrData.gender}</p>}
+                        {qrData.address && <p><span className="font-medium">Address:</span> {qrData.address}</p>}
+                        {qrData.uid && <p><span className="font-medium">Aadhaar:</span> {qrData.uid}</p>}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -378,19 +465,24 @@ export function WorkerRegistrationForm({ user }: WorkerRegistrationFormProps) {
               <div className="rounded-lg bg-blue-50 p-4">
                 <p className="text-sm text-blue-800 font-medium">Aadhaar OTP Verification</p>
                 <p className="text-xs text-blue-600 mt-1">
-                  In production, this uses UIDAI OTP API sent to your Aadhaar-linked mobile. Currently using mock verification.
+                  A one-time password is sent by SMS to the mobile number registered with Aadhaar (UIDAI).
                 </p>
               </div>
               <p className="text-sm text-gray-500">
                 Aadhaar: <span className="font-medium text-gray-900">{maskedAadhaar}</span>
+                &nbsp;·&nbsp; Mobile: <span className="font-medium text-gray-900">{aadhaarMobile}</span>
               </p>
               {!aadhaarOtpVerified ? (
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-500">Enter the 6-digit OTP (use any code in demo mode)</p>
-                  <OtpInput length={6} onComplete={verifyAadhaarOtp} disabled={aadhaarOtpLoading} />
-                  {aadhaarOtpLoading && (
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Verifying...
+                  {!aadhaarOtpSent ? (
+                    <Button onClick={sendAadhaarOtp} disabled={aadhaarOtpLoading} className="w-full">
+                      {aadhaarOtpLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                      Send Aadhaar OTP
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-500">Enter the 6-digit OTP sent to your Aadhaar-linked mobile</p>
+                      <OtpInput length={6} onComplete={verifyAadhaarOtp} disabled={aadhaarOtpLoading} />
                     </div>
                   )}
                 </div>
@@ -422,15 +514,14 @@ export function WorkerRegistrationForm({ user }: WorkerRegistrationFormProps) {
                 {latitude && longitude && <div className="flex justify-between"><span className="text-gray-500">Coordinates</span><span className="font-medium">{latitude}, {longitude}</span></div>}
                 <div className="border-t pt-2 space-y-1">
                   <div className="flex items-center gap-2 text-green-600"><Check className="h-4 w-4" /> Phone Verified</div>
-                  <div className="flex items-center gap-2 text-green-600"><Check className="h-4 w-4" /> DigiLocker Verified</div>
+                  <div className="flex items-center gap-2 text-green-600"><Check className="h-4 w-4" /> Aadhaar Secure QR Verified</div>
                   <div className="flex items-center gap-2 text-green-600"><Check className="h-4 w-4" /> Aadhaar OTP Verified</div>
                   {fileName && <div className="flex items-center gap-2 text-green-600"><Check className="h-4 w-4" /> Document Uploaded</div>}
                 </div>
               </div>
-              <div className="rounded-lg bg-amber-50 p-3">
-                <p className="text-xs text-amber-700">
-                  After submission, your profile will be reviewed by a cooperative administrator.
-                  You will not be able to accept jobs until your profile is approved.
+              <div className="rounded-lg bg-green-50 p-3">
+                <p className="text-xs text-green-700">
+                  Your Aadhaar verification is complete — you will be live and can accept jobs immediately.
                 </p>
               </div>
             </div>

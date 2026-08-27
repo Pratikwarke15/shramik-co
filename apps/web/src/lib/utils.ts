@@ -47,6 +47,7 @@ export function getStatusColor(status: BookingStatus | PaymentStatus | string): 
     HIGH: "bg-orange-100 text-orange-800",
     CRITICAL: "bg-red-100 text-red-800",
     VERIFIED: "bg-emerald-100 text-emerald-800",
+    PENDING_ADMIN_APPROVAL: "bg-amber-100 text-amber-800",
     PENDING_VERIFICATION: "bg-amber-100 text-amber-800",
     SUSPENDED: "bg-red-100 text-red-800",
     DEACTIVATED: "bg-gray-100 text-gray-600",
@@ -57,12 +58,12 @@ export function getStatusColor(status: BookingStatus | PaymentStatus | string): 
 
 export function getRoleDashboardPath(role: UserRole): string {
   const map: Record<UserRole, string> = {
-    CONSUMER: "/dashboard",
+    CONSUMER: "/consumer/dashboard",
     WORKER: "/worker/dashboard",
     COOP_ADMIN: "/coop-admin/dashboard",
-    MINISTRY_SUPER_ADMIN: "/super-admin/dashboard",
+    MINISTRY_SUPER_ADMIN: "/admin/dashboard",
   };
-  return map[role] || "/dashboard";
+  return map[role] || "/login";
 }
 
 export function generateBookingRef(): string {
