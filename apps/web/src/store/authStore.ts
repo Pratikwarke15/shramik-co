@@ -21,11 +21,15 @@ interface AuthActions {
 
 function clearSessionStorage() {
   if (typeof window === "undefined") return;
-  localStorage.removeItem("coopgig_token");
-  localStorage.removeItem("coopgig_user");
-  // Clear all cached server state (React Query) so Account A data never leaks to Account B
-  queryClient.clear();
-  queryClient.cancelQueries();
+  try {
+    localStorage.removeItem("coopgig_token");
+    localStorage.removeItem("coopgig_user");
+    // Clear all cached server state (React Query) so Account A data never leaks to Account B
+    queryClient.clear();
+    queryClient.cancelQueries();
+  } catch {
+    // Storage/query teardown must never block logout navigation.
+  }
 }
 
 export const useAuthStore = create<AuthState & AuthActions>((set) => ({

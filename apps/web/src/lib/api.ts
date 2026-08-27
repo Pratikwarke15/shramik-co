@@ -21,7 +21,7 @@ api.interceptors.response.use(
     if (err.response?.status === 401 && typeof window !== "undefined") {
       localStorage.removeItem("coopgig_token");
       localStorage.removeItem("coopgig_user");
-      window.location.href = "/login";
+      window.location.replace("/login");
     }
     return Promise.reject(err);
   }

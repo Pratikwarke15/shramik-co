@@ -65,11 +65,15 @@ export function Navbar() {
   const handleLogout = async () => {
     setUserMenuOpen(false);
     setMobileOpen(false);
-    logout();
-    // Hard-reload to a clean entry point: wipes every in-memory piece of the
-    // previous session (Zustand, React Query, module singletons, bfcache page).
-    // Client-side navigation here would let stale account state survive.
-    window.location.href = "/login";
+    try {
+      logout();
+    } finally {
+      // Full-page navigation to a clean entry point wipes every in-memory
+      // piece of the previous session (Zustand, React Query, singletons).
+      // location.replace() also replaces the history entry so the Back button
+      // cannot return to the protected page and resurrect the session.
+      window.location.replace("/login");
+    }
   };
 
   const links = user ? navConfig[user.role] || [] : [];
