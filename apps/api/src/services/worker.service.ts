@@ -22,8 +22,12 @@ export async function registerWorker(
     bio?: string;
     experienceYears?: number;
     coopId?: string;
+    latitude?: number;
+    longitude?: number;
+    workAddress?: string;
     kycDocumentUrl?: string;
-    aadhaarNumber?: string;
+    aadhaarNumber: string;
+    aadhaarName?: string;
     digilockerRef?: string;
   }
 ): Promise<any> {
@@ -33,10 +37,8 @@ export async function registerWorker(
     const coop = await prisma.coOp.findUnique({ where: { id: data.coopId } });
     if (!coop) throw new AppError("Co-op not found", 404);
   }
-  // Document upload is mandatory; worker cannot be activated until admin approval.
-  if (!data.kycDocumentUrl) {
-    throw new AppError("Aadhaar/DigiLocker document upload is required to register as a worker", 400);
-  }
+  // DigiLocker verification (dummy — returns verified for any 12-digit Aadhaar)
+  const digilockerResult = await verifyAadhaar(data.aadhaarNumber);
   const profile = await prisma.workerProfile.create({
     data: {
       userId,
@@ -44,10 +46,17 @@ export async function registerWorker(
       bio: data.bio,
       experienceYears: data.experienceYears || 0,
       coopId: data.coopId,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      workAddress: data.workAddress,
       kycDocumentUrl: data.kycDocumentUrl,
-      kycStatus: "PENDING",
-      aadhaarVerified: false,
-      digilockerRef: data.digilockerRef,
+      kycStatus: data.kycDocumentUrl ? "UNDER_REVIEW" : "PENDING",
+      aadhaarNumber: data.aadhaarNumber,
+      aadhaarVerified: digilockerResult.verified,
+      aadhaarName: digilockerResult.name || data.aadhaarName,
+      aadhaarDob: digilockerResult.dob,
+      digilockerRef: data.digilockerRef || `DL-${Date.now()}`,
+      phoneVerified: true,
       // New workers start pending admin approval — never instantly active.
       status: "PENDING_ADMIN_APPROVAL",
     },

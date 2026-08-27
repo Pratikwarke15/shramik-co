@@ -106,6 +106,14 @@ model ConsumerProfile {
   latitude        Float?
   longitude       Float?
   savedAddresses  Json?
+  phoneVerified   Boolean  @default(false)
+  kycStatus       String   @default("PENDING")
+  kycDocumentUrl  String?
+  aadhaarNumber   String?
+  aadhaarVerified Boolean  @default(false)
+  aadhaarName     String?
+  aadhaarDob      String?
+  digilockerRef   String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -118,21 +126,26 @@ model WorkerProfile {
   user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   coopId            String?
   coop              CoOp?        @relation(fields: [coopId], references: [id])
-  status            WorkerStatus @default(PENDING_VERIFICATION)
+  status            WorkerStatus @default(PENDING_ADMIN_APPROVAL)
   skillTags         String[]
   bio               String?
   experienceYears   Int          @default(0)
   latitude          Float?
   longitude         Float?
+  workAddress       String?
   isAvailable       Boolean      @default(true)
   isOnDuty          Boolean      @default(false)
   avgRating         Float        @default(0)
   totalJobs         Int          @default(0)
   totalEarnings     Decimal      @default(0) @db.Decimal(12, 2)
   walletBalance     Decimal      @default(0) @db.Decimal(12, 2)
+  phoneVerified     Boolean      @default(false)
   kycStatus         String       @default("PENDING")
   kycDocumentUrl    String?
+  aadhaarNumber     String?
   aadhaarVerified   Boolean      @default(false)
+  aadhaarName       String?
+  aadhaarDob        String?
   digilockerRef     String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt

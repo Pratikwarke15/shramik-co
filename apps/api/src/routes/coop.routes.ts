@@ -14,13 +14,18 @@ router.post("/", authenticate, authorize("MINISTRY_SUPER_ADMIN"), validate(creat
   res.status(201).json({ success: true, message: "Co-op created", data: coop });
 }));
 
+router.get("/me", authenticate, authorize("COOP_ADMIN", "MINISTRY_SUPER_ADMIN"), asyncHandler(async (req, res) => {
+  const coop = await coopService.getCoopByAdmin(req.user!.id);
+  res.json({ success: true, data: coop });
+}));
+
 router.get("/:id", asyncHandler(async (req, res) => {
   const coop = await coopService.getCoop(req.params.id);
   res.json({ success: true, data: coop });
 }));
 
 router.get("/:id/workers", authenticate, authorize("COOP_ADMIN", "MINISTRY_SUPER_ADMIN"), asyncHandler(async (req, res) => {
-  const workers = await coopService.getCoopWorkers(req.params.id);
+  const workers = await coopService.getCoopWorkers(req.params.id, req.query.status as string | undefined);
   res.json({ success: true, data: workers });
 }));
 

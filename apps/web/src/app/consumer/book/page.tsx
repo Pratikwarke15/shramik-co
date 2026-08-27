@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useBookingStore } from "@/store/bookingStore";
 import { ServiceCard } from "@/components/booking/ServiceCard";
 import { WorkerCard } from "@/components/booking/WorkerCard";
@@ -8,8 +9,9 @@ import { MapPlaceholder } from "@/components/ui/map-placeholder";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check } from "lucide-react";
+import { Check, Loader2, ShieldAlert } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
+import { apiGet } from "@/lib/api";
 import type { Service, WorkerProfile } from "@/lib/types";
 
 declare global {
@@ -50,13 +52,54 @@ const mockWorkers: WorkerProfile[] = [
 const steps = ["Select Service", "Location & Details", "Choose Worker", "Confirm"];
 
 export default function BookPage() {
+  const router = useRouter();
   const { step, selectedService, setStep, setSelectedService, bookingAddress, setBookingAddress } = useBookingStore();
   const [selectedWorker, setSelectedWorker] = useState<WorkerProfile | null>(null);
   const [paying, setPaying] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(true);
+  const [verifyBlocked, setVerifyBlocked] = useState(false);
 
   useEffect(() => {
     loadRazorpayScript();
   }, []);
+
+  // Identity verification gate: consumers must be phone + Aadhaar verified before booking.
+  useEffect(() => {
+    apiGet<{ success: boolean; data: any }>("/verification/consumer/status")
+      .then((res) => {
+        if (res.success && res.data && !res.data.fullyVerified) {
+          setVerifyBlocked(true);
+        }
+      })
+      .catch(() => setVerifyBlocked(true))
+      .finally(() => setVerifyLoading(false));
+  }, []);
+
+  if (verifyLoading) {
+    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
+  }
+
+  if (verifyBlocked) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center space-y-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
+              <ShieldAlert className="h-7 w-7 text-red-500" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">Verification Required</h2>
+            <p className="text-sm text-gray-500">
+              To book a service you must first verify your phone number and Aadhaar identity.
+              This takes under a minute.
+            </p>
+            <Button className="w-full" onClick={() => router.push("/consumer/verify")}>
+              Verify My Identity <Check className="ml-2 h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const handlePay = async () => {
     if (!selectedService) return;

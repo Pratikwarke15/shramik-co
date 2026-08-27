@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
-import { Briefcase, DollarSign, Star, Clock } from "lucide-react";
+import { Briefcase, DollarSign, Star, Clock, ShieldAlert } from "lucide-react";
 import { formatCurrency, getStatusColor } from "@/lib/utils";
+import { apiGet } from "@/lib/api";
 import Link from "next/link";
 
 const mockActiveJob = {
@@ -27,9 +28,32 @@ const recentJobs = [
 
 export default function WorkerDashboard() {
   const [isOnDuty, setIsOnDuty] = useState(true);
+  const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiGet<{ success: boolean; data: any }>("/workers/profile")
+      .then((res) => {
+        if (res.success && res.data) setApprovalStatus(res.data.status);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {approvalStatus === "PENDING_ADMIN_APPROVAL" && (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <ShieldAlert className="h-5 w-5 text-amber-600" />
+          <div>
+            <p className="font-medium text-amber-800">Your profile is under admin review</p>
+            <p className="text-sm text-amber-600">
+              You cannot accept jobs until a cooperative administrator approves your registration.
+            </p>
+          </div>
+          <Link href="/worker/pending-approval" className="ml-auto shrink-0 text-sm font-medium text-amber-700 hover:underline">
+            View status →
+          </Link>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 font-heading">Worker Dashboard</h1>

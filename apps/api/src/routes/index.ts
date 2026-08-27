@@ -8,6 +8,7 @@ import disputeRoutes from "./dispute.routes";
 import socialSecurityRoutes from "./social-security.routes";
 import uploadRoutes from "./upload.routes";
 import analyticsRoutes from "./analytics.routes";
+import verificationRoutes from "./verification.routes";
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use("/disputes", disputeRoutes);
 router.use("/social-security", socialSecurityRoutes);
 router.use("/uploads", uploadRoutes);
 router.use("/analytics", analyticsRoutes);
+router.use("/verification", verificationRoutes);
 
 export default router;

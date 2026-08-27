@@ -70,14 +70,36 @@ export async function getCoop(coopId: string): Promise<any> {
   });
 }
 
-export async function getCoopWorkers(coopId: string): Promise<any[]> {
+export async function getCoopByAdmin(userId: string): Promise<any> {
+  const admin = await prisma.coopAdminProfile.findUnique({
+    where: { userId },
+    include: {
+      coop: {
+        include: {
+          _count: { select: { workers: true, services: true } },
+        },
+      },
+    },
+  });
+  if (!admin || !admin.coop) {
+    throw new AppError("No co-op found for this admin", 404);
+  }
+  const counts = (admin.coop as any)._count as { workers: number; services: number };
+  return formatCoop({
+    ...admin.coop,
+    workerCount: counts.workers,
+    serviceCount: counts.services,
+  });
+}
+
+export async function getCoopWorkers(coopId: string, status?: string): Promise<any[]> {
   const coop = await prisma.coOp.findUnique({ where: { id: coopId } });
   if (!coop) {
     throw new AppError("Co-op not found", 404);
   }
 
   const workers = await prisma.workerProfile.findMany({
-    where: { coopId },
+    where: { coopId, ...(status && status !== "ALL" ? { status: status as any } : {}) },
     include: {
       user: { select: { id: true, name: true, phone: true, avatarUrl: true } },
     },
@@ -338,6 +360,7 @@ function formatCoop(coop: any): any {
 export default {
   createCoop,
   getCoop,
+  getCoopByAdmin,
   getCoopWorkers,
   updateCoopSettings,
   getCoopDashboard,

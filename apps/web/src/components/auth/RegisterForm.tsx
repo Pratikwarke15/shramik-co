@@ -63,10 +63,10 @@ export function RegisterForm() {
         authLogin(res.data.user, res.data.token);
         toast({ title: "Account created!", variant: "success" });
         const role = res.data.user.role;
-        if (role === "WORKER") router.push("/worker/dashboard");
+        if (role === "WORKER") router.push("/worker/onboarding");
         else if (role === "COOP_ADMIN") router.push("/coop-admin/dashboard");
         else if (role === "MINISTRY_SUPER_ADMIN") router.push("/admin/dashboard");
-        else router.push("/consumer/dashboard");
+        else router.push("/consumer/verify");
       } else {
         toast({ title: res.error || "Registration failed", variant: "danger" });
       }

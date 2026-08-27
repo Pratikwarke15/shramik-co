@@ -5,12 +5,13 @@ import { useState, useRef, useEffect, useCallback } from "react";
 interface OtpInputProps {
   length?: number;
   onComplete: (otp: string) => void;
-  onResend: () => void;
+  onResend?: () => void;
   loading?: boolean;
+  disabled?: boolean;
   error?: string;
 }
 
-export function OtpInput({ length = 6, onComplete, onResend, loading, error }: OtpInputProps) {
+export function OtpInput({ length = 6, onComplete, onResend, loading, disabled, error }: OtpInputProps) {
   const [digits, setDigits] = useState<string[]>(Array(length).fill(""));
   const [countdown, setCountdown] = useState(30);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -74,6 +75,7 @@ export function OtpInput({ length = 6, onComplete, onResend, loading, error }: O
   };
 
   const handleResend = () => {
+    if (!onResend) return;
     setDigits(Array(length).fill(""));
     setCountdown(30);
     inputRefs.current[0]?.focus();
@@ -96,7 +98,7 @@ export function OtpInput({ length = 6, onComplete, onResend, loading, error }: O
             onChange={(e) => handleChange(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
             onPaste={handlePaste}
-            disabled={loading}
+            disabled={loading || disabled}
             className="h-12 w-11 rounded-lg border border-gray-300 bg-white text-center text-lg font-semibold text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
           />
         ))}
@@ -104,14 +106,16 @@ export function OtpInput({ length = 6, onComplete, onResend, loading, error }: O
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
-      <button
-        type="button"
-        onClick={handleResend}
-        disabled={countdown > 0 || loading}
-        className="text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:cursor-not-allowed disabled:text-gray-400"
-      >
-        {countdown > 0 ? `Resend OTP in ${countdown}s` : "Resend OTP"}
-      </button>
+      {onResend && (
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={countdown > 0 || loading}
+          className="text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:cursor-not-allowed disabled:text-gray-400"
+        >
+          {countdown > 0 ? `Resend OTP in ${countdown}s` : "Resend OTP"}
+        </button>
+      )}
     </div>
   );
 }
