@@ -15,6 +15,7 @@ enum UserRole {
 }
 
 enum WorkerStatus {
+  PENDING_ADMIN_APPROVAL
   PENDING_VERIFICATION
   VERIFIED
   SUSPENDED

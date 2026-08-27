@@ -64,5 +64,16 @@ export const updateCoopSettingsSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const approveWorkerSchema = z.object({
+  note: z.string().max(1000, "Note too long").optional(),
+});
+
+export const rejectWorkerSchema = z.object({
+  reason: z
+    .string()
+    .min(3, "Reason must be at least 3 characters")
+    .max(1000, "Reason too long"),
+});
+
 export type CreateCoopInput = z.infer<typeof createCoopSchema>;
 export type UpdateCoopSettingsInput = z.infer<typeof updateCoopSettingsSchema>;

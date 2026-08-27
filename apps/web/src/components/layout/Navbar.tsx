@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Handshake,
   Home,
@@ -55,8 +55,16 @@ export function Navbar() {
   const pathname = usePathname();
   const { user, isAuthenticated } = useAuth();
   const logout = useAuthStore((s) => s.logout);
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    setUserMenuOpen(false);
+    setMobileOpen(false);
+    router.replace("/login");
+  };
 
   const links = user ? navConfig[user.role] || [] : [];
 
@@ -145,7 +153,7 @@ export function Navbar() {
                       <p className="text-xs text-gray-500">{user?.role?.replace("_", " ")}</p>
                     </div>
                     <button
-                      onClick={() => { logout(); setUserMenuOpen(false); }}
+                      onClick={handleLogout}
                       className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
                       <LogOut className="h-4 w-4" />
@@ -187,7 +195,7 @@ export function Navbar() {
               );
             })}
             <button
-              onClick={() => { logout(); setMobileOpen(false); }}
+              onClick={handleLogout}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
             >
               <LogOut className="h-5 w-5" />

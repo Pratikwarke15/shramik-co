@@ -87,6 +87,22 @@ export default function BookPage() {
         order_id: orderData.data.id,
         handler: async (response: any) => {
           try {
+            // Step 1: verify Razorpay signature server-side
+            const sigRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/verify-signature`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+              body: JSON.stringify({
+                orderId: response.razorpay_order_id,
+                paymentId: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+              }),
+            });
+            const sigData = await sigRes.json();
+            if (!sigData.success || !sigData.valid) {
+              alert("Payment signature verification failed: " + (sigData.error || "invalid signature"));
+              return;
+            }
+            // Step 2: confirm the booking payment
             const verifyRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/verify`, {
               method: "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },

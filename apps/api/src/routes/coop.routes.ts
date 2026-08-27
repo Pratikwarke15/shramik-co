@@ -2,9 +2,10 @@ import { Router } from "express";
 import { authenticate, authorize } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 import { asyncHandler } from "../middleware/asyncHandler";
-import { createCoopSchema, updateCoopSettingsSchema } from "../schemas/coop.schemas";
+import { createCoopSchema, updateCoopSettingsSchema, approveWorkerSchema, rejectWorkerSchema } from "../schemas/coop.schemas";
 import * as coopService from "../services/coop.service";
 import * as disputeService from "../services/dispute.service";
+import * as workerService from "../services/worker.service";
 
 const router = Router();
 
@@ -43,6 +44,16 @@ router.post("/:id/dividends", authenticate, authorize("COOP_ADMIN", "MINISTRY_SU
   if (!period) { res.status(400).json({ success: false, error: "Period is required" }); return; }
   const dividends = await coopService.calculateDividends(req.params.id, period);
   res.json({ success: true, message: "Dividends calculated", data: dividends });
+}));
+
+router.post("/:id/workers/:workerId/approve", authenticate, authorize("COOP_ADMIN", "MINISTRY_SUPER_ADMIN"), validate(approveWorkerSchema), asyncHandler(async (req, res) => {
+  const worker = await workerService.approveWorker(req.params.workerId, req.params.id, req.body.note);
+  res.json({ success: true, message: "Worker approved", data: worker });
+}));
+
+router.post("/:id/workers/:workerId/reject", authenticate, authorize("COOP_ADMIN", "MINISTRY_SUPER_ADMIN"), validate(rejectWorkerSchema), asyncHandler(async (req, res) => {
+  const worker = await workerService.rejectWorker(req.params.workerId, req.params.id, req.body.reason);
+  res.json({ success: true, message: "Worker rejected", data: worker });
 }));
 
 export default router;

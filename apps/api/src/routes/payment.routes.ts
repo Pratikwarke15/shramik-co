@@ -72,4 +72,19 @@ router.get("/key", (_req, res) => {
   res.json({ success: true, data: { keyId } });
 });
 
+// Dedicated signature-verification endpoint (used by the frontend checkout before confirming).
+router.post("/verify-signature", authenticate, asyncHandler(async (req, res) => {
+  const { orderId, paymentId, signature } = req.body;
+  if (!orderId || !paymentId || !signature) {
+    res.status(400).json({ success: false, error: "orderId, paymentId, and signature are required" });
+    return;
+  }
+  const valid = paymentService.verifyPaymentSignature(orderId, paymentId, signature);
+  if (!valid) {
+    res.status(400).json({ success: false, error: "Invalid payment signature" });
+    return;
+  }
+  res.json({ success: true, valid: true, message: "Signature verified" });
+}));
+
 export default router;

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { User, UserRole } from "@/lib/types";
+import { queryClient } from "@/lib/queryClient";
 
 interface AuthState {
   user: User | null;
@@ -15,6 +16,15 @@ interface AuthActions {
   loadFromStorage: () => void;
 }
 
+function clearSessionStorage() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("coopgig_token");
+  localStorage.removeItem("coopgig_user");
+  // Clear all cached server state (React Query) so Account A data never leaks to Account B
+  queryClient.clear();
+  queryClient.cancelQueries();
+}
+
 export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   user: null,
   token: null,
@@ -22,6 +32,8 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   isLoading: true,
 
   login: (user, token) => {
+    // Switching accounts must reset any cached data from the previous session
+    clearSessionStorage();
     if (typeof window !== "undefined") {
       localStorage.setItem("coopgig_token", token);
       localStorage.setItem("coopgig_user", JSON.stringify(user));
@@ -30,10 +42,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   },
 
   logout: () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("coopgig_token");
-      localStorage.removeItem("coopgig_user");
-    }
+    clearSessionStorage();
     set({ user: null, token: null, isAuthenticated: false, isLoading: false });
   },
 
@@ -55,3 +64,4 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
     }
   },
 }));
+

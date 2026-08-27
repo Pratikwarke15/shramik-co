@@ -17,7 +17,15 @@ function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 
 export async function registerWorker(
   userId: string,
-  data: { skillTags: string[]; bio?: string; experienceYears?: number; coopId?: string }
+  data: {
+    skillTags: string[];
+    bio?: string;
+    experienceYears?: number;
+    coopId?: string;
+    kycDocumentUrl?: string;
+    aadhaarNumber?: string;
+    digilockerRef?: string;
+  }
 ): Promise<any> {
   const existing = await prisma.workerProfile.findUnique({ where: { userId } });
   if (existing) throw new AppError("Worker profile already exists", 409);
@@ -25,11 +33,23 @@ export async function registerWorker(
     const coop = await prisma.coOp.findUnique({ where: { id: data.coopId } });
     if (!coop) throw new AppError("Co-op not found", 404);
   }
+  // Document upload is mandatory; worker cannot be activated until admin approval.
+  if (!data.kycDocumentUrl) {
+    throw new AppError("Aadhaar/DigiLocker document upload is required to register as a worker", 400);
+  }
   const profile = await prisma.workerProfile.create({
     data: {
-      userId, skillTags: data.skillTags, bio: data.bio,
-      experienceYears: data.experienceYears || 0, coopId: data.coopId,
-      status: "PENDING_VERIFICATION",
+      userId,
+      skillTags: data.skillTags,
+      bio: data.bio,
+      experienceYears: data.experienceYears || 0,
+      coopId: data.coopId,
+      kycDocumentUrl: data.kycDocumentUrl,
+      kycStatus: "PENDING",
+      aadhaarVerified: false,
+      digilockerRef: data.digilockerRef,
+      // New workers start pending admin approval — never instantly active.
+      status: "PENDING_ADMIN_APPROVAL",
     },
     include: { user: { select: { id: true, name: true, phone: true } }, coop: true },
   });
@@ -117,6 +137,40 @@ export async function verifyWorker(workerId: string, kycData: { aadhaarNumber: s
   return formatWorker(updated);
 }
 
+// Co-op admin approval gate (separate from automated DigiLocker KYC check).
+export async function approveWorker(workerId: string, coopId: string, note?: string): Promise<any> {
+  const profile = await prisma.workerProfile.findUnique({ where: { id: workerId } });
+  if (!profile) throw new AppError("Worker profile not found", 404);
+  if (profile.coopId && profile.coopId !== coopId) {
+    throw new AppError("Worker does not belong to this co-op", 403);
+  }
+  if (profile.status === "SUSPENDED" || profile.status === "DEACTIVATED") {
+    throw new AppError("Cannot approve a suspended/deactivated worker", 400);
+  }
+  const updated = await prisma.workerProfile.update({
+    where: { id: workerId },
+    data: { status: "VERIFIED", kycStatus: "VERIFIED", aadhaarVerified: true },
+    include: { user: { select: { id: true, name: true } } },
+  });
+  logger.info(`Worker ${workerId} approved by co-op ${coopId}${note ? ` (note: ${note})` : ""}`);
+  return formatWorker(updated);
+}
+
+export async function rejectWorker(workerId: string, coopId: string, reason: string): Promise<any> {
+  const profile = await prisma.workerProfile.findUnique({ where: { id: workerId } });
+  if (!profile) throw new AppError("Worker profile not found", 404);
+  if (profile.coopId && profile.coopId !== coopId) {
+    throw new AppError("Worker does not belong to this co-op", 403);
+  }
+  const updated = await prisma.workerProfile.update({
+    where: { id: workerId },
+    data: { status: "SUSPENDED", kycStatus: "REJECTED" },
+    include: { user: { select: { id: true, name: true } } },
+  });
+  logger.info(`Worker ${workerId} rejected by co-op ${coopId}: ${reason}`);
+  return formatWorker(updated);
+}
+
 export async function searchWorkers(
   lat: number, lng: number, radiusKm: number, skillTags?: string[], coopId?: string
 ): Promise<any[]> {
@@ -142,4 +196,4 @@ function formatWorker(worker: any): any {
   return { ...worker, totalEarnings: worker.totalEarnings ? Number(worker.totalEarnings) : undefined, walletBalance: worker.walletBalance ? Number(worker.walletBalance) : undefined };
 }
 
-export default { registerWorker, updateLocation, setAvailability, getWorkerProfile, getWorkerEarnings, verifyWorker, searchWorkers };
+export default { registerWorker, updateLocation, setAvailability, getWorkerProfile, getWorkerEarnings, verifyWorker, approveWorker, rejectWorker, searchWorkers };
