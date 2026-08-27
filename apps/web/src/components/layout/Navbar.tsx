@@ -16,6 +16,7 @@ import {
   BarChart3,
   Gavel,
   Coins,
+  Building2,
   Menu,
   X,
   LogOut,
@@ -48,6 +49,8 @@ const navConfig = {
   ],
   MINISTRY_SUPER_ADMIN: [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/workers", label: "Worker Verification", icon: Gavel },
+    { href: "/admin/coops", label: "Co-ops", icon: Building2 },
   ],
 };
 
@@ -59,11 +62,14 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
     setUserMenuOpen(false);
     setMobileOpen(false);
-    router.replace("/login");
+    logout();
+    // Hard-reload to a clean entry point: wipes every in-memory piece of the
+    // previous session (Zustand, React Query, module singletons, bfcache page).
+    // Client-side navigation here would let stale account state survive.
+    window.location.href = "/login";
   };
 
   const links = user ? navConfig[user.role] || [] : [];

@@ -28,7 +28,6 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 const skillOptions = ["Plumbing", "Electrical", "Cleaning", "Transport", "Carpentry", "Painting", "AC Repair", "Home Security"];
 
 export function RegisterForm() {
-  const router = useRouter();
   const authLogin = useAuthStore((s) => s.login);
   const { toast } = useToast();
   const { t } = useI18n();
@@ -63,10 +62,12 @@ export function RegisterForm() {
         authLogin(res.data.user, res.data.token);
         toast({ title: "Account created!", variant: "success" });
         const role = res.data.user.role;
-        if (role === "WORKER") router.push("/worker/onboarding");
-        else if (role === "COOP_ADMIN") router.push("/coop-admin/dashboard");
-        else if (role === "MINISTRY_SUPER_ADMIN") router.push("/admin/dashboard");
-        else router.push("/consumer/verify");
+        const home =
+          role === "WORKER" ? "/worker/onboarding"
+          : role === "COOP_ADMIN" ? "/coop-admin/dashboard"
+          : role === "MINISTRY_SUPER_ADMIN" ? "/admin/dashboard"
+          : "/consumer/verify";
+        window.location.href = home;
       } else {
         toast({ title: res.error || "Registration failed", variant: "danger" });
       }

@@ -9,6 +9,7 @@ import socialSecurityRoutes from "./social-security.routes";
 import uploadRoutes from "./upload.routes";
 import analyticsRoutes from "./analytics.routes";
 import verificationRoutes from "./verification.routes";
+import adminRoutes from "./admin.routes";
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use("/social-security", socialSecurityRoutes);
 router.use("/uploads", uploadRoutes);
 router.use("/analytics", analyticsRoutes);
 router.use("/verification", verificationRoutes);
+router.use("/admin", adminRoutes);
 
 export default router;

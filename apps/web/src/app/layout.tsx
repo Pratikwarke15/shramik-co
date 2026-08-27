@@ -3,6 +3,7 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ToastProvider } from "@/components/providers/ToastProvider";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { SessionBootstrap } from "@/components/auth/SessionBootstrap";
 import "./globals.css";
 
 const inter = Inter({
@@ -37,7 +38,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.variable} ${plusJakarta.variable} font-sans`}>
         <I18nProvider>
           <QueryProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              <SessionBootstrap />
+              {children}
+            </ToastProvider>
           </QueryProvider>
         </I18nProvider>
       </body>

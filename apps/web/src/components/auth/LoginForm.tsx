@@ -21,7 +21,6 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const router = useRouter();
   const login = useAuthStore((s) => s.login);
   const { toast } = useToast();
   const { t } = useI18n();
@@ -44,10 +43,13 @@ export function LoginForm() {
         login(res.data.user, res.data.token);
         toast({ title: "Welcome back!", variant: "success" });
         const role = res.data.user.role;
-        if (role === "WORKER") router.push("/worker/dashboard");
-        else if (role === "COOP_ADMIN") router.push("/coop-admin/dashboard");
-        else if (role === "MINISTRY_SUPER_ADMIN") router.push("/admin/dashboard");
-        else router.push("/consumer/dashboard");
+        const home =
+          role === "WORKER" ? "/worker/dashboard"
+          : role === "COOP_ADMIN" ? "/coop-admin/dashboard"
+          : role === "MINISTRY_SUPER_ADMIN" ? "/admin/dashboard"
+          : "/consumer/dashboard";
+        // Full page navigation guarantees a fresh client realm for the account.
+        window.location.href = home;
       } else {
         toast({ title: res.error || "Login failed", variant: "danger" });
       }

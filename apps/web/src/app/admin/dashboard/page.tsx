@@ -1,21 +1,44 @@
 "use client";
 
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { Users, Building2, Briefcase, DollarSign } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import { Users, Building2, Briefcase, DollarSign, UserX, Clock } from "lucide-react";
+import { apiGet } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
+import { StatsCard } from "@/components/dashboard/StatsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 
-const mockCoops = [
-  { id: "c1", name: "Sunrise Workers Cooperative", city: "Delhi", state: "Delhi", workers: 48, revenue: 102000, isActive: true },
-  { id: "c2", name: "Mumbai Gig Workers Union", city: "Mumbai", state: "Maharashtra", workers: 35, revenue: 78000, isActive: true },
-  { id: "c3", name: "Bangalore Service Collective", city: "Bangalore", state: "Karnataka", workers: 28, revenue: 65000, isActive: true },
-  { id: "c4", name: "Chennai Workers Alliance", city: "Chennai", state: "Tamil Nadu", workers: 22, revenue: 45000, isActive: false },
-];
+type AdminStats = {
+  totalCoops: number;
+  totalWorkers: number;
+  verifiedWorkers: number;
+  pendingWorkers: number;
+  suspendedWorkers: number;
+  totalConsumers: number;
+  totalBookings: number;
+  platformRevenue: number;
+};
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await apiGet<{ success: boolean; data: AdminStats }>("/admin/stats");
+      if (res.success) setStats(res.data);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchStats(); }, [fetchStats]);
+
+  if (loading) {
+    return <div className="p-8 text-center text-gray-500">Loading ministry stats...</div>;
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -23,45 +46,38 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-bold text-gray-900 font-heading">Ministry Dashboard</h1>
           <p className="text-gray-500">Nationwide cooperative overview</p>
         </div>
-        <Button><Plus className="mr-1 h-4 w-4" /> Register New Co-op</Button>
+        <Link href="/admin/coops">
+          <Button><Building2 className="mr-1 h-4 w-4" /> Manage Co-ops</Button>
+        </Link>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatsCard icon={Building2} label="Total Co-ops" value={4} color="indigo" />
-        <StatsCard icon={Users} label="Total Workers" value={133} color="emerald" trend={{ value: 8, isUp: true }} />
-        <StatsCard icon={Briefcase} label="Total Bookings" value="2,847" color="blue" trend={{ value: 15, isUp: true }} />
-        <StatsCard icon={DollarSign} label="Platform Revenue" value={formatCurrency(290000)} color="amber" trend={{ value: 12, isUp: true }} />
+        <StatsCard icon={Building2} label="Total Co-ops" value={stats?.totalCoops ?? 0} color="indigo" />
+        <StatsCard icon={Users} label="Total Workers" value={stats?.totalWorkers ?? 0} color="emerald" />
+        <StatsCard icon={Briefcase} label="Total Bookings" value={stats?.totalBookings ?? 0} color="blue" />
+        <StatsCard icon={DollarSign} label="Platform Revenue" value={formatCurrency(stats?.platformRevenue ?? 0)} color="amber" />
       </div>
 
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-        <div className="p-6 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">Registered Co-operatives</h2>
-        </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-gray-50 text-left">
-              <th className="px-6 py-3 font-medium text-gray-600">Name</th>
-              <th className="px-6 py-3 font-medium text-gray-600">City</th>
-              <th className="px-6 py-3 font-medium text-gray-600">Workers</th>
-              <th className="px-6 py-3 font-medium text-gray-600">Revenue</th>
-              <th className="px-6 py-3 font-medium text-gray-600">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mockCoops.map((c) => (
-              <tr key={c.id} className="border-b hover:bg-gray-50">
-                <td className="px-6 py-3 font-medium text-gray-900">{c.name}</td>
-                <td className="px-6 py-3 text-gray-500">{c.city}, {c.state}</td>
-                <td className="px-6 py-3">{c.workers}</td>
-                <td className="px-6 py-3 font-medium">{formatCurrency(c.revenue)}</td>
-                <td className="px-6 py-3">
-                  <Badge variant={c.isActive ? "success" : "default"}>{c.isActive ? "Active" : "Inactive"}</Badge>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatsCard icon={Clock} label="Pending Approval" value={stats?.pendingWorkers ?? 0} color="amber" />
+        <StatsCard icon={Users} label="Verified Workers" value={stats?.verifiedWorkers ?? 0} color="emerald" />
+        <StatsCard icon={UserX} label="Suspended Workers" value={stats?.suspendedWorkers ?? 0} color="red" />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Worker Verification Queue</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(stats?.pendingWorkers ?? 0) > 0 ? (
+            <Link href="/admin/workers">
+              <Button>Review {stats?.pendingWorkers} pending workers</Button>
+            </Link>
+          ) : (
+            <p className="text-sm text-gray-500">No workers awaiting approval.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

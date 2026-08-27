@@ -13,10 +13,10 @@ interface AuthGuardProps {
 
 export function AuthGuard({ allowedRoles, children }: AuthGuardProps) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, user } = useAuthStore();
+  const { isAuthenticated, isLoading, sessionValidated, user } = useAuthStore();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !sessionValidated) return;
     if (!isAuthenticated) {
       router.replace("/login");
       return;
@@ -24,9 +24,11 @@ export function AuthGuard({ allowedRoles, children }: AuthGuardProps) {
     if (allowedRoles && user && !allowedRoles.includes(user.role)) {
       router.replace("/unauthorized");
     }
-  }, [isLoading, isAuthenticated, user, allowedRoles, router]);
+  }, [isLoading, sessionValidated, isAuthenticated, user, allowedRoles, router]);
 
-  if (isLoading) {
+  // Block until the session has been confirmed against the API: never render
+  // dashboard content on the strength of localStorage alone.
+  if (isLoading || !sessionValidated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
