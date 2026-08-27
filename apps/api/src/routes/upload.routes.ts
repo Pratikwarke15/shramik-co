@@ -30,9 +30,33 @@ router.post("/kyc", authenticate, authorize("WORKER"), kycUpload.single("file"),
     res.status(400).json({ success: false, error: "No file provided" });
     return;
   }
+  const { url, path } = await uploadFile("kyc-documents", req.file.buffer, req.file.originalname, req.file.mimetype);
+  const fileUpload = await prisma.fileUpload.create({
+    data: {
+      userId: req.user!.id,
+      fileName: path,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      url,
+      bucket: "kyc-documents",
+      purpose: "KYC",
+    },
+  });
+  // Profile may not exist yet (docs uploaded during onboarding) — that's fine.
   const wp = await prisma.workerProfile.findUnique({ where: { userId: req.user!.id } });
-  if (!wp) {
-    res.status(404).json({ success: false, error: "Worker profile not found" });
+  if (wp) {
+    await prisma.workerProfile.update({
+      where: { id: wp.id },
+      data: { kycDocumentUrl: url, kycStatus: "UNDER_REVIEW" },
+    });
+  }
+  res.json({ success: true, data: { url, fileUpload } });
+}));
+
+router.post("/consumer-kyc", authenticate, authorize("CONSUMER"), kycUpload.single("file"), asyncHandler(async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ success: false, error: "No file provided" });
     return;
   }
   const { url, path } = await uploadFile("kyc-documents", req.file.buffer, req.file.originalname, req.file.mimetype);
@@ -48,9 +72,9 @@ router.post("/kyc", authenticate, authorize("WORKER"), kycUpload.single("file"),
       purpose: "KYC",
     },
   });
-  await prisma.workerProfile.update({
-    where: { id: wp.id },
-    data: { kycDocumentUrl: url, kycStatus: "UNDER_REVIEW" },
+  await prisma.consumerProfile.update({
+    where: { userId: req.user!.id },
+    data: { kycDocumentUrl: url, kycStatus: "VERIFIED" },
   });
   res.json({ success: true, data: { url, fileUpload } });
 }));

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OtpInput } from "@/components/auth/OtpInput";
+import FileUpload from "@/components/ui/FileUpload";
 import { useToast } from "@/components/providers/ToastProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { apiGet, apiPost } from "@/lib/api";
@@ -181,6 +182,15 @@ export default function ConsumerVerifyPage() {
             {aadhaarOtpVerified && (
               <div className="flex items-center gap-2 text-green-600"><Check className="h-5 w-5" /><span className="font-medium">Aadhaar OTP Verified</span></div>
             )}
+
+            <div className="border-t pt-4">
+              <FileUpload
+                endpoint="/uploads/consumer-kyc"
+                label="Identity Document (optional)"
+                description="PDF, JPG or PNG (max 5MB)"
+                onUploadComplete={() => toast({ title: "Document uploaded", variant: "success" })}
+              />
+            </div>
           </CardContent>
         </Card>
 

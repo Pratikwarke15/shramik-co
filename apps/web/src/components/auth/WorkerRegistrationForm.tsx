@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OtpInput } from "@/components/auth/OtpInput";
+import FileUpload from "@/components/ui/FileUpload";
 import { useToast } from "@/components/providers/ToastProvider";
 import { Check, Loader2, Shield, FileCheck, MapPin, User, Briefcase, Upload, Send } from "lucide-react";
 import { apiPost } from "@/lib/api";
@@ -179,7 +180,7 @@ export function WorkerRegistrationForm({ user }: WorkerRegistrationFormProps) {
       case 2: return name.length >= 2;
       case 3: return selectedSkills.length > 0;
       case 4: return workAddress.length >= 5;
-      case 5: return true;
+      case 5: return kycDocumentUrl.length > 0;
       case 6: return digilockerVerified;
       case 7: return aadhaarOtpVerified;
       case 8: return true;
@@ -311,29 +312,21 @@ export function WorkerRegistrationForm({ user }: WorkerRegistrationFormProps) {
           {/* Step 5: Documents */}
           {step === 5 && (
             <div className="space-y-4">
-              <p className="text-sm text-gray-500">Upload your Aadhaar card or government-issued ID</p>
-              <div className="rounded-lg border-2 border-dashed border-gray-300 p-6 text-center hover:border-indigo-400 transition-colors">
-                <Upload className="mx-auto h-10 w-10 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-500">Click to upload or drag and drop</p>
-                <p className="text-xs text-gray-400">PDF, JPG, PNG (max 5MB)</p>
-                <input
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.pdf"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setFileName(file.name);
-                      setKycDocumentUrl(`https://storage.coopgig.com/kyc/${Date.now()}-${file.name}`);
-                      toast({ title: "Document selected", variant: "success" });
-                    }
-                  }}
-                />
-              </div>
-              {fileName && (
+              <p className="text-sm text-gray-500">Upload your Aadhaar card or government-issued ID — this is required for KYC.</p>
+              <FileUpload
+                endpoint="/uploads/kyc"
+                label="Aadhaar Card / Government ID"
+                description="PDF, JPG or PNG (max 5MB) — uploaded securely to our document store"
+                onUploadComplete={(data) => {
+                  setKycDocumentUrl(data.url);
+                  setFileName(data.url.split("/").pop() || "document");
+                  toast({ title: "Document uploaded", variant: "success" });
+                }}
+              />
+              {kycDocumentUrl && (
                 <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3">
                   <FileCheck className="h-5 w-5 text-green-600" />
-                  <span className="text-sm text-green-700">{fileName}</span>
+                  <span className="text-sm text-green-700">Document uploaded for KYC review</span>
                 </div>
               )}
             </div>
