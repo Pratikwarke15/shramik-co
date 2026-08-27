@@ -12,7 +12,7 @@ cryptography==50.0.1
 
 # -> Aadhaar Secure QR verification (lazy-imported)
 pyzbar==0.1.9
-pyaadhaar==2.0.2
+pyaadhaar @ git+https://github.com/tanmoysrt/pyaadhaar.git@main
 numpy==2.5.2
 opencv-python==5.0.0.93
 pillow==12.3.0

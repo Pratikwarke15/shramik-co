@@ -230,13 +230,15 @@ def verify_qr_payload(raw: str) -> dict:
     # 1. Try the modern pyaadhaar "secure QR" path first.
     try:
         if _load_libs() and _pyaadhaar["isSecureQr"](raw):
-            secure = _pyaadhaar["AadhaarSecureQr"](raw)
-            decoded = secure.extract_data() or {}
+            secure = _pyaadhaar["AadhaarSecureQr"](int(raw))
+            decoded = secure.decodeddata() or {}
             photo = None
             try:
-                photo_bytes = secure.imagebytes
-                if photo_bytes:
-                    photo = "data:image/jpeg;base64," + base64.b64encode(photo_bytes).decode()
+                image = secure.image()
+                if image is not None:
+                    buf = io.BytesIO()
+                    image.convert("RGB").save(buf, format="JPEG", quality=85)
+                    photo = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
             except Exception:
                 photo = None
             if photo is None:
