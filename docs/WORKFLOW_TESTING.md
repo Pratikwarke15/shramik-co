@@ -108,7 +108,7 @@ npm run build:web   # produces .next + cap sync
 ### Capacitor Config
 `apps/web/capacitor.config.ts`:
 - **appId:** `com.coopgig.app`
-- **appName:** `CoopGig`
+- **appName:** `Shramik Co`
 - **webDir:** `.next`
 
 ---

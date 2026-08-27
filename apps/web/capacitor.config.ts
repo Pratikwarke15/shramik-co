@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "com.coopgig.app",
-  appName: "CoopGig",
+  appId: "com.shramikco.app",
+  appName: "Shramik Co",
   webDir: ".next",
   server: {
     androidScheme: "https",

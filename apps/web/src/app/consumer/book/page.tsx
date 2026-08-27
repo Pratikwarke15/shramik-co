@@ -125,7 +125,7 @@ export default function BookPage() {
         key: keyData.data.keyId,
         amount: orderData.data.amount,
         currency: orderData.data.currency,
-        name: "CoopGig",
+        name: "Shramik Co",
         description: `Payment for ${selectedService.name}`,
         order_id: orderData.data.id,
         handler: async (response: any) => {

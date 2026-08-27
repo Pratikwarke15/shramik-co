@@ -9,7 +9,7 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2">
               <Handshake className="h-6 w-6 text-indigo-600" />
-              <span className="text-lg font-bold font-heading text-gray-900">CoopGig</span>
+              <span className="text-lg font-bold font-heading text-gray-900">Shramik Co</span>
             </div>
             <p className="mt-3 text-sm text-gray-500">
               Empowering local workers through cooperative gig services with fair commissions, social

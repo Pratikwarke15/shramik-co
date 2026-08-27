@@ -29,7 +29,7 @@ export default function HomePage() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
             <Handshake className="h-7 w-7 text-indigo-600" />
-            <span className="text-xl font-bold font-heading text-gray-900">CoopGig</span>
+            <span className="text-xl font-bold font-heading text-gray-900">Shramik Co</span>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900">Log in</Link>
@@ -75,7 +75,7 @@ export default function HomePage() {
       <section className="py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 font-heading">Why CoopGig?</h2>
+            <h2 className="text-3xl font-bold text-gray-900 font-heading">Why Shramik Co?</h2>
             <p className="mt-3 text-gray-500">Built for workers, by the community</p>
           </div>
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">

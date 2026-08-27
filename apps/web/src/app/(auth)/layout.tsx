@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="hidden w-1/2 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 lg:flex lg:flex-col lg:items-center lg:justify-center lg:p-12">
         <Link href="/" className="flex items-center gap-3 text-white">
           <Handshake className="h-12 w-12" />
-          <span className="text-3xl font-bold font-heading">CoopGig</span>
+          <span className="text-3xl font-bold font-heading">Shramik Co</span>
         </Link>
         <p className="mt-6 max-w-md text-center text-lg text-indigo-100">
           Empowering local workers through cooperative gig services with fair commissions and social security.

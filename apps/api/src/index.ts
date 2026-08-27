@@ -37,7 +37,7 @@ app.use(morgan("combined", {
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: ".swagger-ui .topbar { display: none }",
-  customSiteTitle: "SIH26089 CoopGig API Docs",
+  customSiteTitle: "SIH26089 Shramik Co API Docs",
 }));
 
 app.get("/api/docs.json", (_req, res) => {
@@ -47,7 +47,7 @@ app.get("/api/docs.json", (_req, res) => {
 app.get("/api/v1/health", (_req, res) => {
   res.json({
     success: true,
-    message: "SIH26089 CoopGig API is running",
+    message: "SIH26089 Shramik Co API is running",
     version: "1.0.0",
     timestamp: new Date().toISOString(),
   });
@@ -77,7 +77,7 @@ if (redis) {
 }
 
 server.listen(env.API_PORT, () => {
-  logger.info(`🚀 SIH26089 CoopGig API server running on port ${env.API_PORT}`);
+  logger.info(`🚀 SIH26089 Shramik Co API server running on port ${env.API_PORT}`);
   logger.info(`📚 API docs available at http://localhost:${env.API_PORT}/api/docs`);
   logger.info(`🔌 WebSocket available at ws://localhost:${env.API_PORT}/ws`);
 });

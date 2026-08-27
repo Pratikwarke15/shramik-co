@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "CoopGig",
+    "appName": "Shramik Co",
     "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
@@ -39,9 +39,9 @@
   },
   "auth": {
     "welcomeBack": "Welcome Back",
-    "signInSubtitle": "Sign in to your CoopGig account",
+    "signInSubtitle": "Sign in to your Shramik Co account",
     "createAccount": "Create Account",
-    "createAccountSubtitle": "Join the CoopGig cooperative platform",
+    "createAccountSubtitle": "Join the Shramik Co cooperative platform",
     "phone": "Phone Number",
     "phonePlaceholder": "10-digit mobile number",
     "password": "Password",

@@ -5,7 +5,7 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "SIH26089 CoopGig Platform API",
+      title: "SIH26089 Shramik Co Platform API",
       version: "1.0.0",
       description: "Backend API for the Cooperative Gig Services Platform — empowering gig workers through cooperatives.",
       contact: {

@@ -1,4 +1,4 @@
-# CoopGig — Feature & Architecture Specification
+# Shramik Co — Feature & Architecture Specification
 
 Detailed breakdown of every platform feature, the data model, the authorization model, and
 end-to-end data-flow workflows.

@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "CoopGig",
+    "appName": "Shramik Co",
     "loading": "लोड हो रहा है...",
     "save": "सहेजें",
     "cancel": "रद्द करें",
@@ -39,9 +39,9 @@
   },
   "auth": {
     "welcomeBack": "वापस स्वागत है",
-    "signInSubtitle": "अपने CoopGig खाते में साइन इन करें",
+    "signInSubtitle": "अपने Shramik Co खाते में साइन इन करें",
     "createAccount": "खाता बनाएं",
-    "createAccountSubtitle": "CoopGig सहकारी मंच से जुड़ें",
+    "createAccountSubtitle": "Shramik Co सहकारी मंच से जुड़ें",
     "phone": "फोन नंबर",
     "phonePlaceholder": "10 अंकों का मोबाइल नंबर",
     "password": "पासवर्ड",

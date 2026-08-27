@@ -1,4 +1,4 @@
-# CoopGig — Cooperative Gig Services Platform for Household & Community Services
+# Shramik Co — Cooperative Gig Services Platform for Household & Community Services
 
 **SIH26089** — A production-ready full-stack platform that empowers local workers through
 cooperative gig services with fair commissions (<5%), social security contributions, AI-driven
