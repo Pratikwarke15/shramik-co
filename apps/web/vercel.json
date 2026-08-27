@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://shramik-co-python-api.onrender.com/api/:path*"
+      "destination": "https://coopgig.onrender.com/api/:path*"
     }
   ]
 }
