@@ -1,0 +1,99 @@
+{
+  "common": {
+    "appName": "CoopGig",
+    "loading": "लोड होत आहे...",
+    "save": "जतन करा",
+    "cancel": "रद्द करा",
+    "submit": "सबमिट करा",
+    "delete": "हटवा",
+    "edit": "संपादित करा",
+    "back": "मागे",
+    "search": "शोधा",
+    "filter": "फिल्टर",
+    "refresh": "रिफ्रेश",
+    "viewAll": "सर्व पहा",
+    "noData": "कोणताही डेटा उपलब्ध नाही",
+    "error": "काहीतरी चूक झाली. कृपया पुन्हा प्रयत्न करा.",
+    "success": "यशस्वी",
+    "retry": "पुन्हा प्रयत्न करा"
+  },
+  "nav": {
+    "dashboard": "डॅशबोर्ड",
+    "bookings": "बुकिंग",
+    "wallet": "वॉलेट",
+    "profile": "प्रोफाइल",
+    "earnings": "कमाई",
+    "jobs": "नोकर्या",
+    "workers": "कामगार",
+    "dividends": "लाभांश",
+    "services": "सेवा",
+    "disputes": "वाद",
+    "logout": "लॉगआउट",
+    "home": "होम"
+  },
+  "roles": {
+    "CONSUMER": "ग्राहक",
+    "WORKER": "कामगार",
+    "COOP_ADMIN": "सहकारी प्रशासक",
+    "MINISTRY_SUPER_ADMIN": "महासंघ प्रशासक"
+  },
+  "auth": {
+    "welcomeBack": "पुन्हा स्वागत आहे",
+    "signInSubtitle": "आपल्या CoopGig खात्यात साइन इन करा",
+    "createAccount": "खाते तयार करा",
+    "createAccountSubtitle": "CoopGig सहकारी व्यासपीठात सामील व्हा",
+    "phone": "फोन नंबर",
+    "phonePlaceholder": "१० अंकी मोबाइल नंबर",
+    "password": "पासवर्ड",
+    "name": "पूर्ण नाव",
+    "namePlaceholder": "आपले नाव प्रविष्ट करा",
+    "email": "ईमेल (पर्यायी)",
+    "emailPlaceholder": "you@example.com",
+    "iWantTo": "मी इच्छितो",
+    "hireWorkers": "कामगार भाड्याने घ्या",
+    "workAndEarn": "काम करा आणि कमवा",
+    "signIn": "साइन इन",
+    "createOne": "एक तयार करा",
+    "alreadyHave": "आधीपासून खाते आहे?",
+    "dontHave": "खाते नाही?",
+    "sendOtp": "OTP पाठवा",
+    "otpSent": "आपल्या फोनवर OTP पाठवला",
+    "verifyOtp": "OTP सत्यापित करा"
+  },
+  "services": {
+    "plumbing": "प्लंबिंग",
+    "electrical": "विद्युत",
+    "cleaning": "साफसफाई",
+    "transport": "वाहतूक",
+    "carpentry": "सुतारकाम",
+    "painting": "रंगकाम",
+    "ac": "AC दुरुस्ती",
+    "security": "घर सुरक्षा",
+    "cooking": "स्वयंपाक"
+  },
+  "dashboard": {
+    "consumerTitle": "विश्वसनीय स्थानिक सेवा शोधा",
+    "workerTitle": "आपली कमाई आणि नोकर्या",
+    "coopTitle": "सहकारी व्यवस्थापन",
+    "federationTitle": "महासंघ देखरेख",
+    "activeBookings": "सक्रिय बुकिंग",
+    "totalEarnings": "एकूण कमाई",
+    "availableJobs": "उपलब्ध नोकर्या",
+    "workers": "कामगार",
+    "revenue": "महसूल",
+    "demandForecast": "AI मागणी अंदाज",
+    "viewForecast": "मागणी अंतर्दृष्टी पहा"
+  },
+  "booking": {
+    "newBooking": "सेवा बुक करा",
+    "status": "स्थिती",
+    "schedule": "वेळापत्रक",
+    "rate": "रेटिंग आणि पुनरावलोकन",
+    "yourBookings": "आपल्या बुकिंग",
+    "noBookings": "अद्याप कोणतीही बुकिंग नाही. सुरू करण्यासाठी सेवा बुक करा."
+  },
+  "language": {
+    "label": "भाषा",
+    "select": "भाषा निवडा"
+  }
+}

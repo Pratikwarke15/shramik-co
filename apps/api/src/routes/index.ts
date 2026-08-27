@@ -7,6 +7,7 @@ import paymentRoutes from "./payment.routes";
 import disputeRoutes from "./dispute.routes";
 import socialSecurityRoutes from "./social-security.routes";
 import uploadRoutes from "./upload.routes";
+import analyticsRoutes from "./analytics.routes";
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use("/payments", paymentRoutes);
 router.use("/disputes", disputeRoutes);
 router.use("/social-security", socialSecurityRoutes);
 router.use("/uploads", uploadRoutes);
+router.use("/analytics", analyticsRoutes);
 
 export default router;

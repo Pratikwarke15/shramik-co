@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { PhoneInput } from "./PhoneInput";
 import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/components/providers/ToastProvider";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const loginSchema = z.object({
   phone: z.string().length(10, "Enter a valid 10-digit phone number"),
@@ -23,6 +24,7 @@ export function LoginForm() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
   const { toast } = useToast();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
 
@@ -59,8 +61,8 @@ export function LoginForm() {
   return (
     <div className="w-full max-w-md">
       <div className="mb-8 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 font-heading">Welcome Back</h1>
-        <p className="mt-2 text-sm text-gray-500">Sign in to your CoopGig account</p>
+        <h1 className="text-2xl font-bold text-gray-900 font-heading">{t("auth.welcomeBack")}</h1>
+        <p className="mt-2 text-sm text-gray-500">{t("auth.signInSubtitle")}</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -69,26 +71,28 @@ export function LoginForm() {
           onChange={(v) => setValue("phone", v, { shouldValidate: true })}
           error={errors.phone?.message}
           disabled={loading}
+          label={t("auth.phone")}
+          placeholder={t("auth.phonePlaceholder")}
         />
 
         <Input
-          label="Password"
+          label={t("auth.password")}
           type="password"
-          placeholder="Enter your password"
+          placeholder={t("auth.password")}
           {...register("password")}
           error={errors.password?.message}
           disabled={loading}
         />
 
         <Button type="submit" className="w-full" loading={loading}>
-          Sign In
+          {t("auth.signIn")}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-gray-500">
-        Don&apos;t have an account?{" "}
+        {t("auth.dontHave")}{" "}
         <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-          Create one
+          {t("auth.createOne")}
         </Link>
       </p>
     </div>

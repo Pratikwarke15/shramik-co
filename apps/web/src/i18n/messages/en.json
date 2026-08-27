@@ -1,0 +1,99 @@
+{
+  "common": {
+    "appName": "CoopGig",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "search": "Search",
+    "filter": "Filter",
+    "refresh": "Refresh",
+    "viewAll": "View All",
+    "noData": "No data available",
+    "error": "Something went wrong. Please try again.",
+    "success": "Success",
+    "retry": "Retry"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "bookings": "Bookings",
+    "wallet": "Wallet",
+    "profile": "Profile",
+    "earnings": "Earnings",
+    "jobs": "Jobs",
+    "workers": "Workers",
+    "dividends": "Dividends",
+    "services": "Services",
+    "disputes": "Disputes",
+    "logout": "Logout",
+    "home": "Home"
+  },
+  "roles": {
+    "CONSUMER": "Consumer",
+    "WORKER": "Worker",
+    "COOP_ADMIN": "Co-op Admin",
+    "MINISTRY_SUPER_ADMIN": "Federation Admin"
+  },
+  "auth": {
+    "welcomeBack": "Welcome Back",
+    "signInSubtitle": "Sign in to your CoopGig account",
+    "createAccount": "Create Account",
+    "createAccountSubtitle": "Join the CoopGig cooperative platform",
+    "phone": "Phone Number",
+    "phonePlaceholder": "10-digit mobile number",
+    "password": "Password",
+    "name": "Full Name",
+    "namePlaceholder": "Enter your name",
+    "email": "Email (optional)",
+    "emailPlaceholder": "you@example.com",
+    "iWantTo": "I want to",
+    "hireWorkers": "Hire Workers",
+    "workAndEarn": "Work & Earn",
+    "signIn": "Sign In",
+    "createOne": "Create one",
+    "alreadyHave": "Already have an account?",
+    "dontHave": "Don't have an account?",
+    "sendOtp": "Send OTP",
+    "otpSent": "OTP sent to your phone",
+    "verifyOtp": "Verify OTP"
+  },
+  "services": {
+    "plumbing": "Plumbing",
+    "electrical": "Electrical",
+    "cleaning": "Cleaning",
+    "transport": "Transport",
+    "carpentry": "Carpentry",
+    "painting": "Painting",
+    "ac": "AC Repair",
+    "security": "Home Security",
+    "cooking": "Cooking"
+  },
+  "dashboard": {
+    "consumerTitle": "Find trusted local services",
+    "workerTitle": "Your earnings & jobs",
+    "coopTitle": "Cooperative management",
+    "federationTitle": "Federation oversight",
+    "activeBookings": "Active Bookings",
+    "totalEarnings": "Total Earnings",
+    "availableJobs": "Available Jobs",
+    "workers": "Workers",
+    "revenue": "Revenue",
+    "demandForecast": "AI Demand Forecast",
+    "viewForecast": "View demand insights"
+  },
+  "booking": {
+    "newBooking": "Book a Service",
+    "status": "Status",
+    "schedule": "Schedule",
+    "rate": "Rate & Review",
+    "yourBookings": "Your Bookings",
+    "noBookings": "No bookings yet. Book a service to get started."
+  },
+  "language": {
+    "label": "Language",
+    "select": "Select language"
+  }
+}

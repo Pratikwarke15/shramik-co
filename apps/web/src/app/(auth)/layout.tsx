@@ -1,5 +1,6 @@
 import { Handshake } from "lucide-react";
 import Link from "next/link";
+import { LanguageSelector } from "@/components/i18n/LanguageSelector";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,6 +21,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
       </div>
       <div className="flex flex-1 items-center justify-center p-8">
+        <div className="absolute right-4 top-4"><LanguageSelector /></div>
         <div className="w-full max-w-md">{children}</div>
       </div>
     </div>

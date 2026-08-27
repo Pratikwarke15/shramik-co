@@ -12,9 +12,11 @@ interface PhoneInputProps {
   error?: string;
   otpSent?: boolean;
   disabled?: boolean;
+  label?: string;
+  placeholder?: string;
 }
 
-export function PhoneInput({ value, onChange, onSendOtp, error, otpSent, disabled }: PhoneInputProps) {
+export function PhoneInput({ value, onChange, onSendOtp, error, otpSent, disabled, label = "Phone Number", placeholder = "9876543210" }: PhoneInputProps) {
   const [otpCountdown, setOtpCountdown] = useState(0);
 
   const handleSendOtp = () => {
@@ -30,7 +32,7 @@ export function PhoneInput({ value, onChange, onSendOtp, error, otpSent, disable
 
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-gray-700">Phone Number</label>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
       <div className="flex gap-2">
         <div className="flex items-center gap-1 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2">
           <Smartphone className="h-4 w-4 text-gray-400" />
@@ -40,7 +42,7 @@ export function PhoneInput({ value, onChange, onSendOtp, error, otpSent, disable
           type="tel"
           value={value}
           onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 10))}
-          placeholder="9876543210"
+          placeholder={placeholder}
           disabled={disabled}
           className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
         />
